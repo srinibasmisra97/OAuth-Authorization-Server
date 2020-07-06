@@ -1,8 +1,9 @@
 from urllib.parse import unquote
 from flask import request, jsonify
 from flask.blueprints import Blueprint
+from bson.objectid import ObjectId
 
-from Utils.Security import b64decode, validate_password
+from Utils.Security import b64decode, validate_password, verify_jwt
 
 from Entities.Clients import Clients
 from Entities.RBAC import Permission, Role
@@ -18,36 +19,56 @@ def before_request():
     """
     if request.path != "/token":
         authorization = str(request.headers.get("Authorization").encode('ascii', 'ignore').decode('utf-8'))
-        if authorization.split(" ")[0] != 'Basic':
-            return jsonify({
-                'success': False,
-                'msg': 'unauthorized'
-            }), 401
+        if authorization.split(" ")[0] == 'Basic':
+            decoded = b64decode(authorization.split(" ")[1])
+            if ":" not in decoded:
+                return jsonify({
+                    'success': False,
+                    'msg': 'no username password provided'
+                }), 400
 
-        decoded = b64decode(authorization.split(" ")[1])
-        if ":" not in decoded:
-            return jsonify({
-                'success': False,
-                'msg': 'no username password provided'
-            }), 400
+            email = decoded.split(":")[0]
+            password = decoded.split(":")[1]
 
-        email = decoded.split(":")[0]
-        password = decoded.split(":")[1]
+            client = Clients(email=email)
+            client_doc = client.get_by_email(email=email)
 
-        client = Clients(email=email)
-        client_doc = client.get_by_email(email=email)
+            if not client_doc:
+                return jsonify({
+                    'success': False,
+                    'msg': 'please sign up first'
+                })
 
-        if not client_doc:
-            return jsonify({
-                'success': False,
-                'msg': 'please sign up first'
-            })
+            if not validate_password(password=password, hash=client.password):
+                return jsonify({
+                    'success': False,
+                    'msg': 'invalid password'
+                }), 401
+        elif authorization.split(" ")[0] == 'Bearer':
+            token = authorization.split(" ")[1]
+            headers, claims, msg = verify_jwt(token=token)
+            if headers is None:
+                return jsonify({
+                    'success': False,
+                    'msg': msg
+                }), 401
+            id = ObjectId(claims['sub'])
+            email = claims['email']
 
-        if not validate_password(password=password, hash=client.password):
-            return jsonify({
-                'success': False,
-                'msg': 'invalid password'
-            }), 401
+            client = Clients(id_=id)
+            if not client.get_by_id(oid=id):
+                return jsonify({
+                    'success': False,
+                    'msg': 'user not fount'
+                }), 401
+
+            if client.email != email:
+                return jsonify({
+                    'sucess': False,
+                    'msg': 'invalid email'
+                }), 401
+        else:
+            return jsonify({'success': False, 'msg': 'invalid authorization'}), 400
 
 
 @app_RBAC.route('/api/rbac/permissions', methods=['GET','PUT','POST','DELETE'])
@@ -61,8 +82,14 @@ def permissions():
     :return: 200 OK, 400 Bad Request, 401 Unauthorized
     """
     authorization = str(request.headers.get("Authorization").encode('ascii', 'ignore').decode('utf-8'))
-    decoded = b64decode(authorization.split(" ")[1])
-    email = decoded.split(":")[0]
+    if authorization.split(" ")[0] == 'Basic':
+        decoded = b64decode(authorization.split(" ")[1])
+        email = decoded.split(":")[0]
+    elif authorization.split(" ")[0] == 'Bearer':
+        headers, claims, msg = verify_jwt(authorization.split(" ")[1])
+        if headers is None:
+            return jsonify({'success': False, 'msg': msg}), 401
+        email = claims['email']
 
     client = Clients(email=email)
     client.get_by_email(email=email)
@@ -252,8 +279,14 @@ def roles():
     :return: 200 OK, 400 Bad Request, 401 Unauthorized.
     """
     authorization = str(request.headers.get("Authorization").encode('ascii', 'ignore').decode('utf-8'))
-    decoded = b64decode(authorization.split(" ")[1])
-    email = decoded.split(":")[0]
+    if authorization.split(" ")[0] == 'Basic':
+        decoded = b64decode(authorization.split(" ")[1])
+        email = decoded.split(":")[0]
+    elif authorization.split(" ")[0] == 'Bearer':
+        headers, claims, msg = verify_jwt(authorization.split(" ")[1])
+        if headers is None:
+            return jsonify({'success': False, 'msg': msg}), 401
+        email = claims['email']
 
     client = Clients(email=email)
     client.get_by_email(email=email)

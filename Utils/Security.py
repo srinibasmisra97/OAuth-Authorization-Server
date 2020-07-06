@@ -61,7 +61,7 @@ def verify_jwt(token):
         header, claims = jwt.verify_jwt(token, public_key, ['RS256'])
         return header, claims, None
     except Exception as e:
-        return None, None, e
+        return None, None, str(e)
 
 
 def validate_password(password, hash):
