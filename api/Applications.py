@@ -14,6 +14,8 @@ app_Applications = Blueprint('Applications', __name__)
 @app_Applications.before_request
 def before_request():
     if request.path != "/token":
+        if request.headers.get("Authorization") is None:
+            return jsonify({'success': False, 'msg': 'unauthorized'}), 401
         authorization = str(request.headers.get("Authorization").encode('ascii', 'ignore').decode('utf-8'))
         if authorization.split(" ")[0] == 'Basic':
             decoded = b64decode(authorization.split(" ")[1])

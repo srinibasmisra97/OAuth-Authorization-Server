@@ -231,6 +231,9 @@ class Permission(object):
         if client.email != Clients().get_by_id(oid=application.owner)['email']:
             return None, "not allowed"
 
+        if new_value in application.permissions:
+            return None, "existing"
+
         if old_value == "":
             old_value = self.value
 
@@ -517,7 +520,7 @@ class Role(object):
             "roles.id": role_id
         }
 
-        data = {"set": {"roles.$[role].permissions": to_remove}}
+        data = {"$set": {"roles.$[role].permissions": to_remove}}
 
         array_filters = [{"role.id": role_id}]
 
@@ -557,3 +560,289 @@ class Role(object):
         result = Update().update_one_by_condition(db_obj=db_obj, collection=COL_NAME, data=data, condition=condition)
 
         return result, "removed" if result else "failed"
+
+
+class User(object):
+
+    def __init__(self, email="", password="", name="", role=""):
+        """
+        Init function for creating a member object.
+        :param email: Email id.
+        :param password: Password hash.
+        :param name: Name
+        :param role: Role id.
+        """
+        self.email = email
+        self.password = password
+        self.name = name
+        self.role = role
+
+    def setttr(self, doc):
+        """
+        Set object attributes from document.
+        :param doc: Document.
+        """
+        if "email" in doc:
+            self.email = doc['email']
+        if "password" in doc:
+            self.password = doc['password']
+        if "name" in doc:
+            self.name = doc['name']
+
+    def get_by_email(self, client, application, email=""):
+        """
+        Get an user by its email.
+        :param client: Client object.
+        :param application: Application object.
+        :param email: Email id.
+        :return: Document.
+        """
+        db_obj = db_init()
+
+        if client.email != Clients().get_by_id(oid=application.owner)['email']:
+            return None, "not allowed"
+
+        if email == "":
+            email = self.email
+
+        condition = {'api': application.api, 'users.email': email}
+
+        result = Read().find_by_condition(db_obj=db_obj, collection=COL_NAME, condition=condition)
+
+        for app in result:
+            for user in app['users']:
+                if user['email'] == email:
+                    self.setttr(user)
+                    return user
+
+        return {}
+
+    def add(self, client, application, email="", password="", role="", name=""):
+        """
+        Adding a single user for an application.
+        :param client: Client object.
+        :param application: Application object.
+        :param email: Email id.
+        :param password: Password hash.
+        :param role: Role.
+        :param name: Name
+        :return: Update object.
+        """
+        db_obj = db_init()
+
+        if client.email != Clients().get_by_id(oid=application.owner)['email']:
+            return None, "not allowed"
+
+        if email == "":
+            email = self.email
+        if password == "":
+            password = self.password
+        if role == "":
+            role = self.role
+        if name == "":
+            name = self.name
+
+        condition = {'api': application.api}
+
+        data = {
+            '$push': {
+                'users': {
+                    'email': email,
+                    'password': password,
+                    'name': name,
+                    'role': role
+                }
+            }
+        }
+
+        result = Update().update_one_by_condition(db_obj=db_obj, collection=COL_NAME, data=data, condition=condition)
+
+        return result, "updated" if result else "failed"
+
+    def add_many(self, client, application, users=[]):
+        """
+        Add multiple users to an app at once.
+        :param client: Client object.
+        :param application: Application object.
+        :param users: Users array.
+        :return:
+        """
+        db_obj = db_init()
+
+        if client.email != Clients().get_by_id(oid=application.owner)['email']:
+            return None, "not allowed"
+
+        existing = application.users
+
+        common = []
+        for value in existing:
+            for user in users:
+                if value['email'] == user['email']:
+                    common.append(value)
+
+
+        if len(common) != 0:
+            return None, "existing"
+
+        condition = {
+            "api": application.api
+        }
+
+        data = {
+            "$push": {
+                "users": {
+                    "$each": users
+                }
+            }
+        }
+
+        result = Update().update_one_by_condition(db_obj=db_obj,
+                                                  collection=COL_NAME,
+                                                  condition=condition,
+                                                  data=data)
+        return result, "updated" if result else "fail"
+
+    def remove(self, client, application, email=""):
+        """
+        Removes an user from the application.
+        :param client: Client object.
+        :param application: Application object.
+        :param email: Email id.
+        :return: Update object.
+        """
+        db_obj = db_init()
+
+        if client.email != Clients().get_by_id(oid=application.owner)['email']:
+            return None, "not allowed"
+
+        if email == "":
+            email = self.email
+
+        condition = {'api': application.api, 'users.email': email}
+        data = {'$pull': {'users': {'email': email}}}
+        result = Update().update_one_by_condition(db_obj=db_obj, collection=COL_NAME, condition=condition, data=data)
+
+        return result, "removed" if result else "failed"
+
+    def update_email(self, client, application, new_email="", old_email=""):
+        """
+        Updates the email address of an user.
+        :param client: Client object.
+        :param application: Application object.
+        :param new_email: New email id.
+        :param old_email: Old email id.
+        :return: Update object.
+        """
+        db_obj = db_init()
+
+        if client.email != Clients().get_by_id(oid=application.owner)['email']:
+            return None, "not allowed"
+
+        if old_email == "":
+            old_email = self.email
+
+        existing = application.users
+
+        if new_email in existing:
+            return None, "existing"
+
+        condition = {'api': application.api, 'users.email': old_email}
+
+        data = {'$set': {'users.$[user].email': new_email}}
+
+        array_filters = [{'user.email': old_email}]
+
+        result = Update().update_one_by_condition(db_obj=db_obj, collection=COL_NAME, condition=condition, data=data, array_filters=array_filters)
+
+        return result, "update" if result else "failed"
+
+    def update_name(self, client, application, name, email=""):
+        """
+        Update name of user.
+        :param client: Client object.
+        :param application: Application object.
+        :param name: Name.
+        :param email: Email id.
+        :return: Update object.
+        """
+        db_obj = db_init()
+
+        if client.email != Clients().get_by_id(oid=application.owner)['email']:
+            return None, "not allowed"
+
+        if email == "":
+            email = self.email
+
+        condition = {'api': application.api, 'users.email': email}
+
+        data = {'$set': {'users.$[user].name': name}}
+
+        array_filters = [{'user.email': email}]
+
+        result = Update().update_one_by_condition(db_obj=db_obj, collection=COL_NAME, condition=condition, data=data, array_filters=array_filters)
+
+        return result, "update" if result else "failed"
+
+    def update_password(self, client, application, password, email=""):
+        """
+                Update name of user.
+                :param client: Client object.
+                :param application: Application object.
+                :param password: Password.
+                :param email: Email id.
+                :return: Update object.
+                """
+        db_obj = db_init()
+
+        if client.email != Clients().get_by_id(oid=application.owner)['email']:
+            return None, "not allowed"
+
+        if email == "":
+            email = self.email
+
+        condition = {'api': application.api, 'users.email': email}
+
+        data = {'$set': {'users.$[user].password': password}}
+
+        array_filters = [{'user.email': email}]
+
+        result = Update().update_one_by_condition(db_obj=db_obj, collection=COL_NAME, condition=condition, data=data, array_filters=array_filters)
+
+        return result, "update" if result else "failed"
+
+    def update_role(self, client, application, role, email=""):
+        """
+                Updates the email address of an user.
+                :param client: Client object.
+                :param application: Application object.
+                :param role: New role.
+                :param email: Email id.
+                :return: Update object.
+                """
+        db_obj = db_init()
+
+        if client.email != Clients().get_by_id(oid=application.owner)['email']:
+            return None, "not allowed"
+
+        if email == "":
+            email = self.email
+
+        existing = application.roles
+
+        found = False
+        for er in existing:
+            if role == er['id']:
+                found = True
+
+        if not found:
+            return None, "role not defined"
+
+        condition = {'api': application.api, 'users.email': email}
+
+        data = {'$set': {'users.$[user].role': role}}
+
+        array_filters = [{'user.email': email}]
+
+        result = Update().update_one_by_condition(db_obj=db_obj, collection=COL_NAME, condition=condition, data=data, array_filters=array_filters)
+
+        return result, "update" if result else "failed"

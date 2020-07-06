@@ -19,7 +19,7 @@
       "permissions": ["<Permission Value>", "<Permission Value>", "<Permission Value>"]
     }
   ],
-  "members": [
+  "users": [
     {
       "email": "<Member Email>",
       "password": "<Hashed Password>",

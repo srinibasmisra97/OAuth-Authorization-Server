@@ -26,7 +26,7 @@ def db_init():
 
 class Application(object):
 
-    def __init__(self, id_=None, name="", api="", exp=20, owner=None, permissions=[], roles=[], members=[], creds=[]):
+    def __init__(self, id_=None, name="", api="", exp=20, owner=None, permissions=[], roles=[], users=[], creds=[]):
         """
         Init method for an Application.
         :param id_: Mongodb document id.
@@ -36,7 +36,7 @@ class Application(object):
         :param owner: App owner.
         :param permissions: Permissions for the application.
         :param roles: Roles defined for the app.
-        :param members: Members of the app.
+        :param users: Members of the app.
         :param creds: Key Secret pairs.
         """
         self.id_ = id_
@@ -46,7 +46,7 @@ class Application(object):
         self.owner = owner
         self.permissions = permissions
         self.roles = roles
-        self.members = members
+        self.users = users
         self.creds = creds
 
     def setattr(self, doc):
@@ -68,8 +68,8 @@ class Application(object):
             self.permissions = doc['permissions']
         if 'roles' in doc:
             self.roles = doc['roles']
-        if 'members' in doc:
-            self.members = doc['members']
+        if 'users' in doc:
+            self.users = doc['users']
         if 'creds' in doc:
             self.creds = doc['creds']
 
@@ -94,7 +94,7 @@ class Application(object):
             'owner': client.id_,
             'permissions': [],
             'roles': [],
-            'members': [],
+            'users': [],
             'creds': [
                 {
                     'key': key,

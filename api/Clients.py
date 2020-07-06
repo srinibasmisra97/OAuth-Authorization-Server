@@ -140,7 +140,7 @@ def signin():
             'email': client.email,
             'first_name': client.first_name,
             'last_name': client.last_name
-        }, expiry=5)
+        }, expiry=30)
     })
 
     return response

@@ -3,10 +3,10 @@ from flask import request, jsonify
 from flask.blueprints import Blueprint
 from bson.objectid import ObjectId
 
-from Utils.Security import b64decode, validate_password, verify_jwt
+from Utils.Security import b64decode, validate_password, verify_jwt, check_password_requirement, validate_email, hash_password
 
 from Entities.Clients import Clients
-from Entities.RBAC import Permission, Role
+from Entities.RBAC import Permission, Role, User
 from Entities.Applications import Application
 
 app_RBAC = Blueprint('RBAC', __name__)
@@ -18,6 +18,8 @@ def before_request():
     Before request email and password validation.
     """
     if request.path != "/token":
+        if request.headers.get("Authorization") is None:
+            return jsonify({'success': False, 'msg': 'unauthorized'}), 401
         authorization = str(request.headers.get("Authorization").encode('ascii', 'ignore').decode('utf-8'))
         if authorization.split(" ")[0] == 'Basic':
             decoded = b64decode(authorization.split(" ")[1])
@@ -413,7 +415,7 @@ def roles():
         if role_id is None:
             return jsonify({
                 'success': False,
-                'msg': 'no value provided'
+                'msg': 'no id provided'
             }), 400
 
         role = Role(id=role_id)
@@ -476,3 +478,226 @@ def roles():
             return jsonify({'success': False, 'msg': msg_name})
 
         return jsonify({'success': True, 'msg': 'updated'})
+
+
+@app_RBAC.route('/api/rbac/users', methods=['GET', 'POST', 'PUT', 'DELETE'])
+def users():
+    """
+    This API handles all application users related tasks.
+    GET to get all users.
+    POST to add new users.
+    PUT to update users.
+    DELETE to remove users.
+    :return: 200 OK, 400 Bad Request, 401 Unauthorized
+    """
+    authorization = str(request.headers.get("Authorization").encode('ascii', 'ignore').decode('utf-8'))
+    if authorization.split(" ")[0] == 'Basic':
+        decoded = b64decode(authorization.split(" ")[1])
+        email = decoded.split(":")[0]
+    elif authorization.split(" ")[0] == 'Bearer':
+        headers, claims, msg = verify_jwt(authorization.split(" ")[1])
+        if headers is None:
+            return jsonify({'success': False, 'msg': msg}), 401
+        email = claims['email']
+
+    client = Clients(email=email)
+    client.get_by_email(email=email)
+
+    if request.method == 'GET':
+        if request.headers.get("Content-Type") != "application/x-www-form-urlencoded":
+            return jsonify({
+                'success': False,
+                'msg': 'invalid content type'
+            }), 400
+
+        api_id = request.form.get("api")
+        if api_id is None:
+            return jsonify({
+                'success': False,
+                'msg': 'api id not provided'
+            }), 400
+
+        api_id = request.form.get("api")
+
+        if api_id is None:
+            return jsonify({
+                'success': False,
+                'msg': 'no api id provided'
+            }), 400
+
+        app = Application(api=api_id)
+        result = app.get_by_api_id(api_id=api_id, projection={"password":0, "users.password": 0})
+
+        if not result:
+            return jsonify({
+                'success': False,
+                'msg': 'app not found'
+            })
+
+        return jsonify({
+            'success': True,
+            'roles': app.users
+        })
+    elif request.method == 'POST':
+        if request.headers.get("Content-Type") != "application/x-www-form-urlencoded":
+            return jsonify({
+                'success': False,
+                'msg': 'invalid content type'
+            }), 400
+
+        api_id = request.form.get('api')
+
+        if api_id is None:
+            return jsonify({
+                'success': False,
+                'msg': 'app id not provided'
+            }), 400
+
+        app = Application(api=api_id)
+        result = app.get_by_api_id(api_id=api_id)
+
+        if not result:
+            return jsonify({
+                'success': False,
+                'msg': 'app not found'
+            })
+
+        user_email = request.form.get("email")
+        user_password = request.form.get("password")
+        user_name = request.form.get("name")
+        user_role = request.form.get("role")
+
+        if user_email is None:
+            return jsonify({'success': False, 'msg': 'no email provided'}),400
+        if user_password is None:
+            return jsonify({'success': False, 'msg': 'no password provided'}), 400
+        if user_name is None:
+            return jsonify({'success': False, 'msg': 'no name provided'}), 400
+        if user_role is None:
+            return jsonify({'success': False, 'msg': 'no role provided'}), 400
+
+        if not validate_email(email=user_email):
+            return jsonify({'success': False, 'msg': 'invalid email'})
+
+        found = False
+        for eu in app.users:
+            if user_email == eu['email']:
+                found = True
+                break
+        if found:
+            return jsonify({'success': False, 'msg': 'existing user'})
+
+        result, msg = check_password_requirement(password=user_password)
+        if not result:
+            return jsonify({'success': False, 'msg': msg})
+
+        if not str(user_name).isalpha():
+            if " " not in str(user_name):
+                return jsonify({'success': False, 'msg': 'unknown character in name'})
+
+        found = False
+        for role in app.roles:
+            if user_role == role['id']:
+                found = True
+                break
+        if not found:
+            return jsonify({'success': False, 'msg': 'role not defined'})
+
+        user = User(email=user_email, password=hash_password(password=user_password), name=user_name, role=user_role)
+        result, msg = user.add(client=client, application=app)
+
+        return jsonify({
+            'success': True if result else False,
+            'msg': msg
+        })
+    elif request.method == 'DELETE':
+        if request.headers.get('Content-Type') != "application/x-www-form-urlencoded":
+            return jsonify({
+                'success': False,
+                'msg': 'invalid content type'
+            }), 400
+
+        api_id = request.form.get('api')
+
+        if api_id is None:
+            return jsonify({
+                'success': False,
+                'msg': 'no app id provided'
+            }), 400
+
+        app = Application(api=api_id)
+        result = app.get_by_api_id(api_id=api_id)
+
+        if not result:
+            return jsonify({
+                'success': False,
+                'msg': 'app not found'
+            })
+
+        user_email = request.form.get('email')
+
+        if user_email is None:
+            return jsonify({
+                'success': False,
+                'msg': 'no email provided'
+            }), 400
+
+        user = User(email=user_email)
+        result = user.get_by_email(client=client, application=app, email=user_email)
+
+        if not result:
+            return jsonify({'success': False, 'msg': 'user not found'})
+
+        result, msg = user.remove(client=client, application=app)
+
+        return jsonify({
+            'success': True if result else False,
+            'msg': msg
+        })
+    elif request.method == 'PUT':
+        if request.headers.get("Content-Type") != "application/x-www-form-urlencoded":
+            return jsonify({'success': False, 'msg': 'invalid content type'}), 400
+
+        api_id = request.form.get("api")
+        user_email = request.form.get("email")
+        user_name = request.form.get("name")
+        user_role = request.form.get("role")
+        password = request.form.get("password")
+
+        if api_id is None:
+            return jsonify({'success': False, 'msg': 'no app id provided'}), 400
+
+        app = Application(api=api_id)
+        result = app.get_by_api_id(api_id=api_id)
+
+        if not result:
+            return jsonify({'success': False, 'msg': 'app not found'})
+
+        if user_email is None:
+            return jsonify({'success': False, 'msg': 'email not provided'}), 400
+
+        user = User(email=user_email)
+        if not user.get_by_email(client=client, application=app):
+            return jsonify({'success': False, 'msg': 'user not found'})
+
+        result_role = result_name = result_password = msg_role = msg_name = msg_password = None
+        if user_role is not None:
+            found = False
+            for er in app.roles:
+                if user_role == er['id']:
+                    found = True
+                    break
+            if found:
+                return jsonify({'success': False, 'msg': 'role not defined'})
+            result_role, msg_role = user.update_role(client=client, application=app, role=user_role)
+        if user_name is not None:
+            result_name, msg_name = user.update_name(client=client, application=app, name=user_name)
+        if password is not None:
+            if not check_password_requirement(password=password):
+                return jsonify({'success': False, 'msg': 'password does not meet requirements'})
+            result_password, msg_password = user.update_password(client=client, application=app, password=hash_password(password=password))
+
+        return jsonify({
+            'success': bool(result_role or result_name or result_password),
+            'msg': 'updated' if (result_role or result_name or result_password) else 'failed'
+        })
