@@ -1,0 +1,49 @@
+{
+  "name": "<App Name>",
+  "api": "<API Identifier>",
+  "owner": "<Client ObjectID>",
+  "permissions": [
+    {
+      "name": "<Permission Name>",
+      "value": "<Permission Value>"
+    },
+    {
+      "name": "<Permission Name>",
+      "value": "<Permission Value>"
+    }
+  ],
+  "roles": [
+    {
+      "name": "<Role Name>",
+      "id": "<Role Identifier>",
+      "permissions": ["<Permission Value>", "<Permission Value>", "<Permission Value>"]
+    }
+  ],
+  "members": [
+    {
+      "email": "<Member Email>",
+      "password": "<Hashed Password>",
+      "first_name": "<First Name>",
+      "last_name": "<Last Name>",
+      "role": "<Role Id>"
+    },
+    {
+      "email": "<Member Email>",
+      "password": "<Hashed Password>",
+      "first_name": "<First Name>",
+      "last_name": "<Last Name>",
+      "role": "<Role Id>"
+    }
+  ],
+  "exp": 15,
+  "creds": [
+    {
+      "key": "<Client Key>",
+      "secret": "<Client Secret>"
+    },
+    {
+      "key": "<Client Key>",
+      "secret": "<Client Secret>"
+    }
+  ]
+}
