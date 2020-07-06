@@ -1,5 +1,4 @@
 import secrets, string, random
-from bson.objectid import ObjectId
 
 from Utils.DBOperations import Read, Insert, Update, Delete
 from Utils.Security import b64encode
@@ -232,6 +231,14 @@ class Application(object):
 
         if not self.get_by_api_id(api_id=api_id):
             return None, "app not found"
+
+        found = False
+        for cred in self.creds:
+            if key == cred['key']:
+                found = True
+
+        if not found:
+            return None, 'key not found'
 
         condition = {'api': api_id, 'creds.key': key}
 

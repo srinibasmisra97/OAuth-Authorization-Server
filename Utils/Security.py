@@ -1,9 +1,11 @@
 import base64
 import re
 import python_jwt as jwt, jwcrypto.jwk as jwk, datetime
+from passlib.hash import sha256_crypt
 
 private_key = jwk.JWK.from_pem(open('keys/private.pem', 'rb').read())
 public_key = jwk.JWK.from_pem(open('keys/public.pem', 'rb').read())
+
 
 def b64encode(message):
     """
@@ -55,5 +57,53 @@ def verify_jwt(token):
     :param token: String JWT Token
     :return: header, claims
     """
-    header, claims = jwt.verify_jwt(token, public_key, ['RS256'])
-    return header, claims
+    try:
+        header, claims = jwt.verify_jwt(token, public_key, ['RS256'])
+        return header, claims, None
+    except Exception as e:
+        return None, None, e
+
+
+def validate_password(password, hash):
+    """
+    This function validates if the password hash is the same as the hash provided.
+    :param password: Password to hash.
+    :param hash: Hash from the db.
+    :return: Boolean
+    """
+    return sha256_crypt.verify(password, hash)
+
+
+def hash_password(password):
+    """
+    This function returns the generated hash for the password.
+    :param password: String to hash.
+    :return: Hash string.
+    """
+    return sha256_crypt.hash(password)
+
+
+def check_password_requirement(password):
+    """
+    This function validates if the password meets the requirements.
+    :param password: Password.
+    :return: Boolean
+    """
+    spec_chars = ['!', '@', '#', '$', '%', '^', '&', '*', '-', '_']
+
+    if len(password)<10:
+        return False, "password length should be more than 10"
+
+    if not any(char.isupper() for char in password):
+        return False, "no upper case characters"
+
+    if not any(char.islower() for char in password):
+        return False, "no lower case characters"
+
+    if not any(char.isdigit() for char in password):
+        return False, "no digits"
+
+    if not any(char in spec_chars for char in password):
+        return False, "no special characters"
+
+    return True, "valid"

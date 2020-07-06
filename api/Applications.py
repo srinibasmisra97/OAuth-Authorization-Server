@@ -2,12 +2,48 @@ from urllib.parse import unquote
 from flask import request, jsonify, Response
 from flask.blueprints import Blueprint
 
-from Utils.Security import b64decode, validate_email, generate_jwt
+from Utils.Security import b64decode, generate_jwt, validate_password
 
 from Entities.Clients import Clients
 from Entities.Applications import Application
 
 app_Applications = Blueprint('Applications', __name__)
+
+
+@app_Applications.before_request
+def before_request():
+    if request.path != "/token":
+        authorization = str(request.headers.get("Authorization").encode('ascii', 'ignore').decode('utf-8'))
+        if authorization.split(" ")[0] != 'Basic':
+            return jsonify({
+                'success': False,
+                'msg': 'unauthorized'
+            }), 401
+
+        decoded = b64decode(authorization.split(" ")[1])
+        if ":" not in decoded:
+            return jsonify({
+                'success': False,
+                'msg': 'no username password provided'
+            }), 400
+
+        email = decoded.split(":")[0]
+        password = decoded.split(":")[1]
+
+        client = Clients(email=email)
+        client_doc = client.get_by_email(email=email)
+
+        if not client_doc:
+            return jsonify({
+                'success': False,
+                'msg': 'please sign up first'
+            })
+
+        if not validate_password(password=password, hash=client.password):
+            return jsonify({
+                'success': False,
+                'msg': 'invalid password'
+            }), 401
 
 
 @app_Applications.route('/register', methods=['POST'])
@@ -29,29 +65,6 @@ def register():
             'msg': 'too many parameters'
         }), 400
 
-    authorization = str(request.headers.get("Authorization").encode('ascii', 'ignore').decode('utf-8'))
-    if authorization.split(" ")[0] != "Basic":
-        return jsonify({
-            'success': False,
-            'msg': 'unauthorized'
-        }), 401
-
-    email = b64decode(authorization.split(" ")[1])
-    if not validate_email(email):
-        return jsonify({
-            'success': False,
-            'msg': 'invalid email'
-        }), 400
-
-    client = Clients(email=email)
-    client_doc = client.get_by_email(email=email)
-
-    if not client_doc:
-        return jsonify({
-            'success': False,
-            'msg': 'please sign up first'
-        })
-
     app_name = request.form.get("name")
     api_id = request.form.get("api")
     expiry = request.form.get("exp")
@@ -68,6 +81,13 @@ def register():
         }), 400
     elif expiry is None:
         expiry = 15
+
+    authorization = str(request.headers.get("Authorization").encode('ascii', 'ignore').decode('utf-8'))
+    decoded = b64decode(authorization.split(" ")[1])
+    email = decoded.split(":")[0]
+
+    client = Clients(email=email)
+    client.get_by_email(email=email)
 
     app = Application(name=app_name, api=api_id, exp=expiry)
     result, msg = app.register(client=client)
@@ -98,27 +118,11 @@ def add_api_key():
         }), 400
 
     authorization = str(request.headers.get("Authorization").encode('ascii', 'ignore').decode('utf-8'))
-    if authorization.split(" ")[0] != "Basic":
-        return jsonify({
-            'success': False,
-            'msg': 'unauthorized'
-        }), 401
-
-    email = b64decode(authorization.split(" ")[1])
-    if not validate_email(email):
-        return jsonify({
-            'success': False,
-            'msg': 'invalid email'
-        }), 400
+    decoded = b64decode(authorization.split(" ")[1])
+    email = decoded.split(":")[0]
 
     client = Clients(email=email)
-    client_doc = client.get_by_email(email=email)
-
-    if not client_doc:
-        return jsonify({
-            'success': False,
-            'msg': 'please sign up first'
-        })
+    client.get_by_email(email=email)
 
     api_id = request.form.get("api")
 
@@ -192,30 +196,11 @@ def delete_app():
         }), 400
 
     authorization = str(request.headers.get("Authorization").encode('ascii', 'ignore').decode('utf-8'))
-    if authorization.split(" ")[0] != "Basic":
-        return jsonify({
-            'success': False,
-            'msg': 'unauthorized'
-        }), 401
-
-    email = b64decode(authorization.split(" ")[1])
-    if not validate_email(email):
-        return jsonify({
-            'success': False,
-            'msg': 'invalid email'
-        }), 400
+    decoded = b64decode(authorization.split(" ")[1])
+    email = decoded.split(":")[0]
 
     client = Clients(email=email)
-    client_doc = client.get_by_email(email=email)
-
-    if not client_doc:
-        return jsonify({
-            'success': False,
-            'msg': 'please sign up first'
-        })
-
-    setattr(client, 'first_name', client_doc[0]['first_name'])
-    setattr(client, 'last_name', client_doc[0]['last_name'])
+    client.get_by_email(email=email)
 
     api_id = request.form.get("api")
 

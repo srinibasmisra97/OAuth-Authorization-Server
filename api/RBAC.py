@@ -1,14 +1,53 @@
 from urllib.parse import unquote
-from flask import request, jsonify, Response
+from flask import request, jsonify
 from flask.blueprints import Blueprint
 
-from Utils.Security import b64decode, validate_email
+from Utils.Security import b64decode, validate_password
 
 from Entities.Clients import Clients
-from Entities.RBAC import Permission
+from Entities.RBAC import Permission, Role
 from Entities.Applications import Application
 
 app_RBAC = Blueprint('RBAC', __name__)
+
+
+@app_RBAC.before_request
+def before_request():
+    """
+    Before request email and password validation.
+    """
+    if request.path != "/token":
+        authorization = str(request.headers.get("Authorization").encode('ascii', 'ignore').decode('utf-8'))
+        if authorization.split(" ")[0] != 'Basic':
+            return jsonify({
+                'success': False,
+                'msg': 'unauthorized'
+            }), 401
+
+        decoded = b64decode(authorization.split(" ")[1])
+        if ":" not in decoded:
+            return jsonify({
+                'success': False,
+                'msg': 'no username password provided'
+            }), 400
+
+        email = decoded.split(":")[0]
+        password = decoded.split(":")[1]
+
+        client = Clients(email=email)
+        client_doc = client.get_by_email(email=email)
+
+        if not client_doc:
+            return jsonify({
+                'success': False,
+                'msg': 'please sign up first'
+            })
+
+        if not validate_password(password=password, hash=client.password):
+            return jsonify({
+                'success': False,
+                'msg': 'invalid password'
+            }), 401
 
 
 @app_RBAC.route('/api/rbac/permissions', methods=['GET','PUT','POST','DELETE'])
@@ -22,27 +61,11 @@ def permissions():
     :return: 200 OK, 400 Bad Request, 401 Unauthorized
     """
     authorization = str(request.headers.get("Authorization").encode('ascii', 'ignore').decode('utf-8'))
-    if authorization.split(" ")[0] != "Basic":
-        return jsonify({
-            'success': False,
-            'msg': 'unauthorized'
-        }), 401
-
-    email = b64decode(authorization.split(" ")[1])
-    if not validate_email(email):
-        return jsonify({
-            'success': False,
-            'msg': 'invalid email'
-        }), 400
+    decoded = b64decode(authorization.split(" ")[1])
+    email = decoded.split(":")[0]
 
     client = Clients(email=email)
-    client_doc = client.get_by_email(email=email)
-
-    if not client_doc:
-        return jsonify({
-            'success': False,
-            'msg': 'email not found'
-        })
+    client.get_by_email(email=email)
 
     if request.method == 'GET':
         if request.headers.get("Content-Type") != "application/x-www-form-urlencoded":
@@ -190,7 +213,7 @@ def permissions():
 
         old_value = unquote(old_value)
         permission = Permission(value=old_value)
-        permission.get(api_id=api_id, permission=old_value)
+        permission.get(application=app, permission=old_value)
 
         if not permission:
             return jsonify({
@@ -201,6 +224,12 @@ def permissions():
         name = request.form.get('name')
         value = request.form.get('value')
 
+        if name is None and value is None:
+            return jsonify({
+                'success': False,
+                'msg': 'either name or value should be provided'
+            }), 400
+
         if name is None:
             result, msg = permission.update_value(client=client, application=app, new_value=value)
         if value is None:
@@ -210,3 +239,207 @@ def permissions():
             'success': True if result else False,
             'msg': msg
         })
+
+
+@app_RBAC.route('/api/rbac/roles', methods=['GET', 'POST', 'PUT', 'DELETE'])
+def roles():
+    """
+    API for handling roles related tasks.
+    GET for getting all the roles defined for the application.
+    POST to add roles to the application.
+    PUT to update roles of the application.
+    DELETE to delete roles for the application.
+    :return: 200 OK, 400 Bad Request, 401 Unauthorized.
+    """
+    authorization = str(request.headers.get("Authorization").encode('ascii', 'ignore').decode('utf-8'))
+    decoded = b64decode(authorization.split(" ")[1])
+    email = decoded.split(":")[0]
+
+    client = Clients(email=email)
+    client.get_by_email(email=email)
+
+    if request.method == 'GET':
+        if request.headers.get("Content-Type") != "application/x-www-form-urlencoded":
+            return jsonify({
+                'success': False,
+                'msg': 'invalid content type'
+            }), 400
+
+        api_id = request.form.get("api")
+        if api_id is None:
+            return jsonify({
+                'success': False,
+                'msg': 'api id not provided'
+            }), 400
+
+        api_id = request.form.get("api")
+
+        if api_id is None:
+            return jsonify({
+                'success': False,
+                'msg': 'no api id provided'
+            }), 400
+
+        app = Application(api=api_id)
+        result = app.get_by_api_id(api_id=api_id)
+
+        if not result:
+            return jsonify({
+                'success': False,
+                'msg': 'app not found'
+            })
+
+        return jsonify({
+            'success': False,
+            'roles': app.roles
+        })
+    elif request.method == 'POST':
+        if request.headers.get("Content-Type") != "application/json":
+            return jsonify({
+                'success': False,
+                'msg': 'invalid content type'
+            }), 400
+
+        request_data = request.get_json()
+        api_id = request_data.get('api')
+
+        if api_id is None:
+            return jsonify({
+                'success': False,
+                'msg': 'app id not provided'
+            }), 400
+
+        app = Application(api=api_id)
+        result = app.get_by_api_id(api_id=api_id)
+
+        if not result:
+            return jsonify({
+                'success': False,
+                'msg': 'app not found'
+            })
+
+        roles = request_data.get("roles")
+        if roles is None:
+            return jsonify({
+                'success': False,
+                'msg': 'no roles provided'
+            }), 400
+
+        existing = app.permissions
+
+        for role in roles:
+            if "name" not in role:
+                return jsonify({'success': False, 'msg': 'no name provided for role'}), 400
+            if "id" not in role:
+                return jsonify({'success': False, 'msg': 'no id provided for role'}), 400
+            if "permissions" not in role:
+                return jsonify({'success': False, 'msg': 'no permissions provided for role'}), 400
+
+            found = False
+            for permission in role['permissions']:
+                for ep in existing:
+                    if permission == ep['value']:
+                        found = True
+                        break
+                if not found:
+                    return jsonify({'success': False, 'msg': 'permission ' + permission + ' not defined'}), 400
+
+        role = Role()
+        result, msg = role.add_many(client=client, application=app, roles=roles)
+
+        return jsonify({
+            'success': True if result else False,
+            'msg': msg
+        })
+    elif request.method == 'DELETE':
+        if request.headers.get('Content-Type') != "application/x-www-form-urlencoded":
+            return jsonify({
+                'success': False,
+                'msg': 'invalid content type'
+            }), 400
+
+        api_id = request.form.get('api')
+
+        if api_id is None:
+            return jsonify({
+                'success': False,
+                'msg': 'no app id provided'
+            }), 400
+
+        app = Application(api=api_id)
+        result = app.get_by_api_id(api_id=api_id)
+
+        if not result:
+            return jsonify({
+                'success': False,
+                'msg': 'app not found'
+            })
+
+        role_id = request.form.get('role')
+
+        if role_id is None:
+            return jsonify({
+                'success': False,
+                'msg': 'no value provided'
+            }), 400
+
+        role = Role(id=role_id)
+        result = role.get(client=client, application=app, role_id=role_id)
+
+        if not result:
+            return jsonify({'success': False, 'msg': 'role not found'})
+
+        result, msg = role.delete(client=client, application=app)
+
+        return jsonify({
+            'success': True if result else False,
+            'msg': msg
+        })
+    elif request.method == 'PUT':
+        if request.headers.get("Content-Type") != "application/json":
+            return jsonify({'success': False, 'msg': 'invalid content type'})
+
+        request_data = request.get_json()
+
+        api_id = request_data.get("api")
+        role_id = request_data.get("role")
+        name = request_data.get("name")
+        permissions = request_data.get("permissions")
+
+        if api_id is None:
+            return jsonify({'success': False, 'msg': 'no app id provided'}), 400
+
+        app = Application(api=api_id)
+        result = app.get_by_api_id(api_id=api_id)
+
+        if not result:
+            return jsonify({'success': False, 'msg': 'app not found'})
+
+        role = Role(id=role_id)
+        result = role.get(client=client, application=app)
+
+        if not result:
+            return jsonify({'success': False, 'msg': 'role not found'})
+
+        result_permissions = result_name = msg_permissions = msg_name = None
+        if permissions is not None:
+            existing = app.permissions
+            found = False
+            for permission in permissions:
+                for ep in existing:
+                    if permission == ep['value']:
+                        found = True
+                        break
+                if not found:
+                    return jsonify({'success': False, 'msg': 'permission ' + permission + ' not defined'}), 400
+            result_permissions, msg_permissions = role.update_permissions(client=client, application=app, permissions=permissions)
+        if name is not None:
+            result_name, msg_name = role.update_name(client=client, application=app, name=name)
+
+        if not result_permissions:
+            return jsonify({'success': False,'msg': msg_permissions})
+
+        if not result_name:
+            return jsonify({'success': False, 'msg': msg_name})
+
+        return jsonify({'success': True, 'msg': 'updated'})

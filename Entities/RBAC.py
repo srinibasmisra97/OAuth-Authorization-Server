@@ -253,6 +253,7 @@ class Permission(object):
 
         return result, "updated" if result else "failed"
 
+
 class Role(object):
 
     def __init__(self, name="", id="", permissions=[]):
@@ -265,6 +266,18 @@ class Role(object):
         self.name = name
         self.id = id
         self.permissions = permissions
+
+    def setattr(self, doc):
+        """
+        This function is used to set attributes for the Role object.
+        :param doc: Role document from db.
+        """
+        if "name" in doc:
+            self.name = doc['name']
+        if "id" in doc:
+            self.id = doc['id']
+        if "permissions" in doc:
+            self.permissions = doc['permissions']
 
     def get(self, client, application, role_id=""):
         """
@@ -279,6 +292,9 @@ class Role(object):
         if client.email != Clients().get_by_id(oid=application.owner)['email']:
             return None, "not allowed"
 
+        if role_id == "":
+            role_id = self.id
+
         condition = {'api': application.api, 'roles.id': role_id}
 
         result = Read().find_by_condition(db_obj=db_obj, collection=COL_NAME, condition=condition)
@@ -287,6 +303,7 @@ class Role(object):
             if app['api'] == application.api:
                 for role in app['roles']:
                     if role_id == role['id']:
+                        self.setattr(doc=role)
                         return role
 
         return {}
@@ -310,7 +327,7 @@ class Role(object):
             name = self.name
         if role_id == "":
             role_id = self.id
-        if permissions == []:
+        if permissions:
             permissions = self.permissions
 
         condition = {'api': application.api}
@@ -401,6 +418,40 @@ class Role(object):
 
         return result, "updated" if result else "failed"
 
+    def update_permissions(self, client, application, permissions, role_id=""):
+        """
+        This function sets the new set of permissions for a role.
+        :param client: Client object.
+        :param application: Application object.
+        :param permissions: Permissions array.
+        :param role_id: Role id.
+        :return: Update object.
+        """
+        db_obj = db_init()
+
+        if client.email != Clients().get_by_id(oid=application.owner)['email']:
+            return None, "not allowed"
+
+        if role_id == "":
+            role_id = self.id
+
+        condition = {
+            "api": application.api,
+            "roles.id": role_id
+        }
+
+        data = {"$set": {"roles.$[role].permissions": permissions}}
+
+        array_filters = [{"role.id": role_id}]
+
+        result = Update().update_one_by_condition(db_obj=db_obj,
+                                                  collection=COL_NAME,
+                                                  condition=condition,
+                                                  data=data,
+                                                  array_filters=array_filters)
+
+        return result, "removed" if result else "failed"
+
     def add_permissions(self, client, application, permissions, role_id=""):
         """
         Add permissions for a role.
@@ -475,5 +526,34 @@ class Role(object):
                                                   condition=condition,
                                                   data=data,
                                                   array_filters=array_filters)
+
+        return result, "removed" if result else "failed"
+
+    def delete(self, client, application, role_id=""):
+        """
+        This function deletes a role for an application.
+        :param client: Client object.
+        :param application: Application object.
+        :param role_id: Role id.
+        :return: Update object.
+        """
+        db_obj = db_init()
+
+        if client.email != Clients().get_by_id(oid=application.owner)['email']:
+            return None, "not allowed"
+
+        if role_id == "":
+            role_id = self.id
+
+        condition = {
+            'api': application.api,
+            'roles.id': role_id
+        }
+
+        data = {
+            '$pull': {'roles': {'id': role_id}}
+        }
+
+        result = Update().update_one_by_condition(db_obj=db_obj, collection=COL_NAME, data=data, condition=condition)
 
         return result, "removed" if result else "failed"

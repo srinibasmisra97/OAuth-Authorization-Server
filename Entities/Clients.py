@@ -1,8 +1,6 @@
-import secrets, string, random
 from bson.objectid import ObjectId
 
-from Utils.DBOperations import Read, Insert, Update, Delete
-from Utils.Security import b64encode
+from Utils.DBOperations import Read, Insert, Delete
 
 db_obj = None
 
@@ -27,10 +25,11 @@ def db_init():
 
 class Clients(object):
 
-    def __init__(self, id_=None, email="", first_name="", last_name=""):
+    def __init__(self, id_=None, email="", password="", first_name="", last_name=""):
         """
         Init function for the Client class.
         :param id_: Mongodb document id.
+        :param password: Client password.
         :param first_name: First name of the app developer.
         :param last_name: Last name of the app developer.
         :param email: Email ID of the app developer.
@@ -39,6 +38,7 @@ class Clients(object):
         self.first_name = first_name
         self.last_name = last_name
         self.email = email
+        self.password = password
         self.apps = []
 
     def signup(self):
@@ -65,6 +65,7 @@ class Clients(object):
                                 'first_name': self.first_name,
                                 'last_name': self.last_name,
                                 'email': self.email,
+                                'password': self.password,
                                 'apps': self.apps
                             })
         if result:
@@ -80,6 +81,8 @@ class Clients(object):
             self.id_ = doc["_id"]
         if "email" in doc:
             self.email = doc["email"]
+        if "password" in doc:
+            self.password = doc["password"]
         if "first_name" in doc:
             self.first_name = doc["first_name"]
         if "last_name" in doc:
