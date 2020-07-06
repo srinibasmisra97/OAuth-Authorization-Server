@@ -1,7 +1,7 @@
-from flask import request, jsonify
+from flask import request, jsonify, Response
 from flask.blueprints import Blueprint
 
-from Utils.Security import validate_email, hash_password, check_password_requirement, b64decode
+from Utils.Security import validate_email, hash_password, check_password_requirement, b64decode, validate_password, generate_jwt
 
 from Entities.Clients import Clients
 
@@ -92,3 +92,55 @@ def signup():
         'success': status,
         'msg': msg
     })
+
+
+@app_Clients.route('/signin', methods=['POST'])
+def signin():
+    """
+    This api returns an access token for admin usage.
+    :return: 200 OK, 401 Unauthorized, 400 Bad Request.
+    """
+    authorization = str(request.headers.get("Authorization").encode('ascii', 'ignore').decode('utf-8'))
+    if authorization.split(" ")[0] != 'Basic':
+        return jsonify({
+            'success': False,
+            'msg': 'unauthorized'
+        }), 401
+
+    decoded = b64decode(authorization.split(" ")[1])
+    if ":" not in decoded:
+        return jsonify({
+            'success': False,
+            'msg': 'no username password provided'
+        }), 400
+
+    email = decoded.split(":")[0]
+    password = decoded.split(":")[1]
+
+    client = Clients(email=email)
+    client_doc = client.get_by_email(email=email)
+
+    if not client_doc:
+        return jsonify({
+            'success': False,
+            'msg': 'please sign up first'
+        })
+
+    if not validate_password(password=password, hash=client.password):
+        return jsonify({
+            'success': False,
+            'msg': 'invalid password'
+        }), 401
+
+    response = Response('', headers={
+        'Authorization': 'Bearer ' + generate_jwt({
+            'iss': 'auth-server.signin.token',
+            'aud': 'admin.apis',
+            'sub': str(client.id_),
+            'email': client.email,
+            'first_name': client.first_name,
+            'last_name': client.last_name
+        }, expiry=5)
+    })
+
+    return response
