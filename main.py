@@ -21,7 +21,7 @@ MONGO_DB = str(cfg.get(CONFIG_ENV, "MONGO_DB"))
 MEMCACHE_HOST = str(cfg.get(CONFIG_ENV, "MEMCACHE_HOST"))
 MEMCACHE_PORT = str(cfg.get(CONFIG_ENV, "MEMCACHE_PORT"))
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder='static')
 
 app.register_blueprint(app_Clients)
 app.register_blueprint(app_RBAC)

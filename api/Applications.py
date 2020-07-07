@@ -1,9 +1,8 @@
-from urllib.parse import unquote
 from flask import request, jsonify, Response
 from flask.blueprints import Blueprint
 from bson.objectid import ObjectId
 
-from Utils.Security import b64decode, generate_jwt, validate_password, verify_jwt
+from Utils.Security import b64decode, validate_password, verify_jwt
 
 from Entities.Clients import Clients
 from Entities.Applications import Application
@@ -260,6 +259,58 @@ def delete_app():
             'success': False,
             'msg': msg
         })
+
+    return jsonify({
+        'success': True if result else False,
+        'msg': msg
+    })
+
+
+@app_Applications.route('/uris', methods=['PUT'])
+def set_uris():
+    """
+    This API sets the redirect_uris of the application.
+    :return: 200 OK, 400 Bad Request, 401 Unauthorized.
+    """
+    if request.headers.get('Content-Type') != "application/json":
+        return jsonify({
+            'success': False,
+            'msg': 'invalid content type'
+        }), 400
+
+    authorization = str(request.headers.get("Authorization").encode('ascii', 'ignore').decode('utf-8'))
+    if authorization.split(" ")[0] == 'Basic':
+        decoded = b64decode(authorization.split(" ")[1])
+        email = decoded.split(":")[0]
+    elif authorization.split(" ")[0] == 'Bearer':
+        headers, claims, msg = verify_jwt(authorization.split(" ")[1])
+        if headers is None:
+            return jsonify({'success': False, 'msg': msg}), 401
+        email = claims['email']
+
+    client = Clients(email=email)
+    client.get_by_email(email=email)
+
+    request_data = request.get_json()
+
+    api_id = request_data.get("api")
+    if api_id is None:
+        return jsonify({'success': False, 'msg': 'no api id provided'}), 400
+
+    app = Application(api=api_id)
+    result = app.get_by_api_id(api_id=api_id)
+
+    if not result:
+        return jsonify({
+            'success': False,
+            'msg': 'app not found'
+        })
+
+    uris = request_data.get("uris")
+    if uris is None:
+        return jsonify({'success': False, 'msg': 'no uris provided'}), 400
+
+    result, msg = app.set_redirect_uris(uris=uris)
 
     return jsonify({
         'success': True if result else False,

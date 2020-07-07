@@ -26,7 +26,7 @@ def db_init():
 
 class Application(object):
 
-    def __init__(self, id_=None, name="", api="", exp=20, owner=None, permissions=[], roles=[], users=[], creds=[]):
+    def __init__(self, id_=None, name="", api="", exp=20, owner=None, redirect_uris=[], permissions=[], roles=[], users=[], creds=[]):
         """
         Init method for an Application.
         :param id_: Mongodb document id.
@@ -34,6 +34,7 @@ class Application(object):
         :param api: App id.
         :param exp: App token expiry.
         :param owner: App owner.
+        :param redirect_uris: Allowed Redirect URIs for the application.
         :param permissions: Permissions for the application.
         :param roles: Roles defined for the app.
         :param users: Members of the app.
@@ -44,6 +45,7 @@ class Application(object):
         self.api = api
         self.exp = exp
         self.owner = owner
+        self.redirect_uris = redirect_uris
         self.permissions = permissions
         self.roles = roles
         self.users = users
@@ -64,6 +66,8 @@ class Application(object):
             self.exp = int(doc['exp'])
         if 'owner' in doc:
             self.owner = doc['owner']
+        if 'redirect_uris' in doc:
+            self.direct_uris = doc['redirect_uris']
         if 'permissions' in doc:
             self.permissions = doc['permissions']
         if 'roles' in doc:
@@ -93,6 +97,7 @@ class Application(object):
             'exp': self.exp,
             'owner': client.id_,
             'permissions': [],
+            'redirect_uris': [],
             'roles': [],
             'users': [],
             'creds': [
@@ -262,3 +267,18 @@ class Application(object):
         result = Delete().delete_one_by_id(db_obj=db_obj, collection=COL_NAME, id=self.id_)
 
         return result, "deleted" if result else "failed"
+
+    def set_redirect_uris(self, uris):
+        """
+        This function simply pushes an uri in to the allowed redirect uris list.
+        :param uri: URI to add.
+        :return: Update object.
+        """
+        db_obj = db_init()
+
+        condition = {'api': self.api}
+        data = {'$set': {'redirect_uris': uris}}
+
+        result = Update().update_one_by_condition(db_obj=db_obj, collection=COL_NAME, condition=condition, data=data)
+
+        return result, "updated" if result else "failed"
