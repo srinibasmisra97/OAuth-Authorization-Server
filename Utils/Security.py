@@ -125,3 +125,19 @@ def generate_secret():
     :return: Secret.
     """
     return secrets.token_hex(64)
+
+
+def check_scopes(requested, allocated):
+    """
+    Returns the intersection of the two scopes sets.
+    :param requested: Requested list of scopes.
+    :param allocated: Allocated list of scopes.
+    :return: List of common scopes.
+    """
+    common = []
+    for scope in requested:
+        if scope in allocated:
+            common.append(scope)
+    if "profile" in requested:
+        common.append("profile")
+    return common

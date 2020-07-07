@@ -1,6 +1,8 @@
 from Utils.DBOperations import Read, Update
 from Entities.Clients import Clients
 
+import json
+
 db_obj = None
 
 COL_NAME = 'applications'
@@ -282,7 +284,7 @@ class Role(object):
         if "permissions" in doc:
             self.permissions = doc['permissions']
 
-    def get(self, client, application, role_id=""):
+    def get(self, application, client=None, role_id=""):
         """
         Gets the roles for the application.
         :param client: Client object.
@@ -291,9 +293,9 @@ class Role(object):
         :return: List.
         """
         db_obj = db_init()
-
-        if client.email != Clients().get_by_id(oid=application.owner)['email']:
-            return None, "not allowed"
+        if client is not None:
+            if client.email != Clients().get_by_id(oid=application.owner)['email']:
+                return None, "not allowed"
 
         if role_id == "":
             role_id = self.id
@@ -577,7 +579,21 @@ class User(object):
         self.name = name
         self.role = role
 
-    def setttr(self, doc):
+    def __str__(self):
+        """
+        Returns a string of the user object.
+        :return: String.
+        """
+        return json.dumps({'email': self.email, 'name': self.name, 'role': self.role})
+
+    def json(self):
+        """
+        Returns a json object.
+        :return: JSON.
+        """
+        return {'email': self.email, 'name': self.name, 'role': self.role}
+
+    def setattr(self, doc):
         """
         Set object attributes from document.
         :param doc: Document.
@@ -588,6 +604,8 @@ class User(object):
             self.password = doc['password']
         if "name" in doc:
             self.name = doc['name']
+        if "role" in doc:
+            self.role = doc['role']
 
     def get_by_email(self, application, client=None, email=""):
         """
@@ -613,7 +631,7 @@ class User(object):
         for app in result:
             for user in app['users']:
                 if user['email'] == email:
-                    self.setttr(user)
+                    self.setattr(user)
                     return user
 
         return {}

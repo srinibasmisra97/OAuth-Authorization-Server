@@ -18,7 +18,7 @@ $(document).ready(function () {
             success: function(response){
                 url = window.location.origin + "/redirect?client_id=" + data['client_id'] +
                     "&response_type=" + data['response_type'] + "&redirect_uri=" + data['redirect_uri'] +
-                    "&audience=" + data['audience'];
+                    "&audience=" + data['audience'] + "&session=" + response['session'];
                 if(data['scope'] != undefined){
                     url = url + "&scope=" + data['scope'];
                 }
