@@ -18,6 +18,8 @@ MONGO_PORT = int(cfg.get(CONFIG_ENV, "MONGO_PORT"))
 MONGO_USERNAME = str(cfg.get(CONFIG_ENV, "MONGO_USERNAME"))
 MONGO_PASSWORD = str(cfg.get(CONFIG_ENV, "MONGO_PASSWORD"))
 MONGO_DB = str(cfg.get(CONFIG_ENV, "MONGO_DB"))
+MEMCACHE_HOST = str(cfg.get(CONFIG_ENV, "MEMCACHE_HOST"))
+MEMCACHE_PORT = str(cfg.get(CONFIG_ENV, "MEMCACHE_PORT"))
 
 app = Flask(__name__)
 
