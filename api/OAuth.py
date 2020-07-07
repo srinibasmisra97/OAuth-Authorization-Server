@@ -77,8 +77,8 @@ def signin_password():
     user = User(email=email)
     result = user.get_by_email(application=app)
 
-    key = generate_key(10)
-    memcache_connection().add(key=key, val=str(user))
+    code = generate_key(10)
+    memcache_connection().add(key=code, val=str(user))
 
     if not result:
         return jsonify({'success': False, 'msg': 'username not found'}), 401
@@ -86,7 +86,7 @@ def signin_password():
     if not validate_password(password=password, hash=user.password):
         return jsonify({'success': False, 'msg': 'invalid password'}), 401
 
-    return jsonify({'success': True, 'msg': 'logged in', 'session': key})
+    return jsonify({'success': True, 'msg': 'logged in', 'session': code})
 
 
 @app_OAuth.route('/redirect', methods=['GET'])
@@ -128,7 +128,11 @@ def redirect_to_uri():
 
     if response_type == 'code':
         code = generate_key(20)
-        memcache_client.add(key=code, val=json.dumps(request.args), time=86400)
+        data = dict(request.args)
+        data['name'] = userinfo['name']
+        data['email'] = userinfo['email']
+        data['role'] = userinfo['role']
+        memcache_client.add(key=code, val=json.dumps(data), time=86400)
 
         uri = redirect_uri + "?code=" + code
         if scope is not None:
@@ -140,7 +144,8 @@ def redirect_to_uri():
             'iss': 'auth-server.implicit',
             'sub': client_id + '@auth-server',
             'aud': app.api,
-            'gty': 'implicit'
+            'gty': 'implicit',
+            'app': app.name
         }
 
         user = User(email=userinfo['email'])
@@ -162,3 +167,96 @@ def redirect_to_uri():
         uri = redirect_uri + "#" + token
 
     return redirect(uri)
+
+
+@app_OAuth.route('/token', methods=['POST'])
+def oauth_token():
+    """
+    OAuth token endpoint.
+    :return: 200 OK, 400 Bad Request, 401 Unauthorized.
+    """
+    if request.headers.get('Content-Type') != "application/x-www-form-urlencoded":
+        return jsonify({'success': False, 'msg': 'invalid content type'}), 400
+
+    client_id = request.form.get("client_id")
+    client_secret = request.form.get("client_secret")
+    grant_type = request.form.get("grant_type")
+    audience = request.form.get("audience")
+
+    if client_id is None:
+        return jsonify({'success': False, 'msg': 'client id missing'}), 401
+    if client_secret is None:
+        return jsonify({'success': False, 'msg': 'client secret missins'}), 401
+    if grant_type is None:
+        return jsonify({'success': False, 'msg': 'grant type not provided'}), 400
+    if audience is None:
+        return jsonify({'success': False, 'msg': 'audience not provided'}), 400
+
+    app = Application()
+    result = app.get_by_key_secret(api_id=audience, key=client_id, secret=client_secret)
+    if not result:
+        return jsonify({'success': False, 'msg': 'invalid credentials'}), 401
+
+    memcache_client = memcache_connection()
+
+    if grant_type == 'authorization_code':
+        code = request.form.get("code")
+        if code is None:
+            return jsonify({'success': False, 'msg': 'missing authorization code'}), 400
+
+        redirect_uri = request.form.get("redirect_uri")
+        if redirect_uri is None:
+            return jsonify({'success': False, 'msg': 'redirect uri missing'}), 400
+
+        cached_data = memcache_client.get(key=code)
+        if cached_data is None:
+            return jsonify({'success': False, 'msg': 'invalid code'}), 401
+        data = json.loads(cached_data)
+
+        if redirect_uri != data['redirect_uri']:
+            return jsonify({'success': False, 'msg': 'invalid redirect uri'}), 401
+
+        user = User(email=data['email'])
+        result = user.get_by_email(application=app)
+        if not result:
+            return jsonify({'success': False, 'msg': 'user not found'}), 401
+
+        role = Role(id=user.role)
+        role.get(application=app)
+
+        payload = {
+            'iss': 'auth-server.authorization-code',
+            'sub': client_id + '@auth-server',
+            'aud': app.api,
+            'gty': 'authorization_code',
+            'app': app.name
+        }
+        if 'scope' in data:
+            scopes = data['scope']
+            scopes_arr = str(scopes).split(" ")
+        else:
+            scopes = ""
+            scopes_arr = []
+
+        if "profile" in scopes:
+            payload['name'] = data['name']
+            payload['email'] = data['email']
+            payload['role'] = data['role']
+
+        payload['scopes'] = list_to_string(check_scopes(requested=scopes_arr, allocated=role.permissions)) if scopes is not None else ""
+
+        token = generate_jwt(payload=payload, expiry=app.exp)
+        memcache_client.delete(key=code)
+        return jsonify({'token': token, 'scopes': scopes, 'type': 'Bearer', 'expiry': app.exp, 'grant_type': grant_type})
+    elif grant_type == 'client_credentials':
+        payload = {
+            'iss': 'auth-server.authorization-code',
+            'sub': client_id + '@auth-server',
+            'aud': app.api,
+            'gty': 'client_credentials',
+            'app': app.name
+        }
+        token = generate_jwt(payload=payload, expiry=app.exp)
+        return jsonify({'token': token, 'type': 'Bearer', 'expiry': app.exp, 'grant_type': grant_type})
+    else:
+        return jsonify({'success': False, 'msg': 'invalid grant type'}), 400
