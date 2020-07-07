@@ -1,11 +1,12 @@
 import configparser
 import os
 
-from flask import Flask
+from flask import Flask, redirect
 
 from api.Clients import app_Clients
 from api.Applications import app_Applications
 from api.RBAC import app_RBAC
+from api.OAuth import app_OAuth
 
 CONFIG_FILEPATH = os.path.join(os.getcwd(), "configs/environment.cfg")
 CONFIG_ENV = os.environ.get('CONFIG_ENV') or 'DEV'
@@ -26,6 +27,7 @@ app = Flask(__name__, template_folder='static')
 app.register_blueprint(app_Clients)
 app.register_blueprint(app_RBAC)
 app.register_blueprint(app_Applications)
+app.register_blueprint(app_OAuth)
 
 
 if __name__ == '__main__':

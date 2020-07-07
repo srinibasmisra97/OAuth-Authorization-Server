@@ -589,7 +589,7 @@ class User(object):
         if "name" in doc:
             self.name = doc['name']
 
-    def get_by_email(self, client, application, email=""):
+    def get_by_email(self, application, client=None, email=""):
         """
         Get an user by its email.
         :param client: Client object.
@@ -599,8 +599,9 @@ class User(object):
         """
         db_obj = db_init()
 
-        if client.email != Clients().get_by_id(oid=application.owner)['email']:
-            return None, "not allowed"
+        if client is not None:
+            if client.email != Clients().get_by_id(oid=application.owner)['email']:
+                return None, "not allowed"
 
         if email == "":
             email = self.email

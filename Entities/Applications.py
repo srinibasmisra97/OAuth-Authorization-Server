@@ -1,7 +1,5 @@
-import secrets, string, random
-
 from Utils.DBOperations import Read, Insert, Update, Delete
-from Utils.Security import b64encode
+from Utils.Security import b64encode, generate_key, generate_secret
 
 db_obj = None
 
@@ -67,7 +65,7 @@ class Application(object):
         if 'owner' in doc:
             self.owner = doc['owner']
         if 'redirect_uris' in doc:
-            self.direct_uris = doc['redirect_uris']
+            self.redirect_uris = doc['redirect_uris']
         if 'permissions' in doc:
             self.permissions = doc['permissions']
         if 'roles' in doc:
@@ -88,8 +86,8 @@ class Application(object):
         if result:
             return None, "existing api id"
 
-        key = "".join((random.choice(string.ascii_letters + string.digits) for i in range(20)))
-        secret = secrets.token_hex(32)
+        key = generate_key()
+        secret = generate_secret()
 
         app = {
             'name': self.name,
@@ -214,8 +212,8 @@ class Application(object):
         if not self.get_by_api_id(api_id=api_id):
             return None, "app not found"
 
-        key = ''.join(random.choice(string.ascii_letters + string.digits) for i in range(20))
-        secret = secrets.token_hex(32)
+        key = generate_key()
+        secret = generate_secret()
 
         condition = { 'api': api_id }
 

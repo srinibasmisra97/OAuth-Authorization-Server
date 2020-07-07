@@ -1,7 +1,8 @@
 import base64
 import re
 import python_jwt as jwt, jwcrypto.jwk as jwk, datetime
-from passlib.hash import sha256_crypt
+import random, secrets, string
+import hashlib
 
 private_key = jwk.JWK.from_pem(open('keys/private.pem', 'rb').read())
 public_key = jwk.JWK.from_pem(open('keys/public.pem', 'rb').read())
@@ -71,7 +72,7 @@ def validate_password(password, hash):
     :param hash: Hash from the db.
     :return: Boolean
     """
-    return sha256_crypt.verify(password, hash)
+    return hash_password(password) == hash
 
 
 def hash_password(password):
@@ -80,7 +81,7 @@ def hash_password(password):
     :param password: String to hash.
     :return: Hash string.
     """
-    return sha256_crypt.hash(password)
+    return hashlib.sha256(password.encode()).hexdigest()
 
 
 def check_password_requirement(password):
@@ -107,3 +108,20 @@ def check_password_requirement(password):
         return False, "no special characters"
 
     return True, "valid"
+
+
+def generate_key(num_chars=32):
+    """
+    Generate a unique key.
+    :param num_chars: Number of characters.
+    :return: Key of num_chars length
+    """
+    return ''.join(random.choice(string.ascii_letters + string.digits) for i in range(num_chars))
+
+
+def generate_secret():
+    """
+    Generates a unique secret value.
+    :return: Secret.
+    """
+    return secrets.token_hex(64)
