@@ -1,0 +1,25 @@
+<html>
+
+<head>
+    <title>Application</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+</head>
+
+<body>
+    <link rel="stylesheet" href="static/login/css/main.css" type="text/css">
+    <script type="text/javascript">
+        data = {{ data|tojson }};
+    </script>
+    <script src="static/login/js/main.js"></script>
+    <div>
+        <h2 id="hello-message">{{ app_name }}</h2>
+        <form class="loginbox" autocomplete="off">
+            <input placeholder="Username" type="text" id="username"></input>
+            <input placeholder="Password" type="password" id="password" autocomplete="on"></input>
+            <button id="submit">Login</button>
+        </form>
+        <p class="error" id="error"></p>
+    </div>
+</body>
+
+</html>
