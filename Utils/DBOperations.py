@@ -1,5 +1,3 @@
-from bson.objectid import ObjectId
-
 class Read(object):
 
     def find_by_id(self, db_obj, collection, id, projection = {}):
@@ -17,7 +15,8 @@ class Read(object):
             else:
                 result = db_obj[collection].find_one({'_id': id})
             return result
-        except:
+        except Exception as e:
+            print(e)
             return {}
 
     def find_by_condition(self, db_obj, collection, condition = {}, projection = {}):
@@ -38,6 +37,7 @@ class Read(object):
         except Exception as e:
             print(e)
             return []
+
 
 class Insert(object):
 
@@ -72,6 +72,7 @@ class Insert(object):
         except Exception as e:
             print(e)
             return []
+
 
 class Delete(object):
 
@@ -122,6 +123,7 @@ class Delete(object):
         except Exception as e:
             print(e)
             return []
+
 
 class Update(object):
 

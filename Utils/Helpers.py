@@ -1,5 +1,6 @@
 import memcache
 
+
 def memcache_connection():
     """
     This returns a memcache connection client.

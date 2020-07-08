@@ -1,7 +1,7 @@
 import configparser
 import os
 
-from flask import Flask, redirect
+from flask import Flask
 
 from api.Clients import app_Clients
 from api.Applications import app_Applications
