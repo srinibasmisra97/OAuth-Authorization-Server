@@ -32,6 +32,24 @@ def b64decode(base64_message):
     return message
 
 
+def b64urlencoded(message):
+    """
+    This function performs url safe base64 encoding.
+    :param message: Message to encode,
+    :return: Encoded string.
+    """
+    return base64.urlsafe_b64encode(message)
+
+
+def b64urldecoded(message):
+    """
+    This function performs url safe base64 decoding.
+    :param message: Message to decode.
+    :return: Decoded string.
+    """
+    return base64.urlsafe_b64decode(message)
+
+
 def validate_email(email):
     """
     This function ensures that the string is a valid email address or not.
