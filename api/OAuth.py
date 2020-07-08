@@ -284,7 +284,7 @@ def oauth_token():
 
         token = generate_jwt(payload=payload, expiry=app.exp)
         memcache_client.delete(key=code)
-        return jsonify({'token': token, 'scopes': list_to_string(permitted_scopes), 'type': 'Bearer', 'expiry': app.exp, 'grant_type': grant_type})
+        return jsonify({'token': token, 'scopes': list_to_string(permitted_scopes), 'type': 'Bearer', 'expiry': app.exp*60, 'grant_type': grant_type})
     elif grant_type == 'client_credentials':
         if client_secret is None:
             return jsonify({'success': False, 'msg': 'no secret passed'}), 401
@@ -304,6 +304,6 @@ def oauth_token():
             'app': app.name
         }
         token = generate_jwt(payload=payload, expiry=app.exp)
-        return jsonify({'token': token, 'type': 'Bearer', 'expiry': app.exp, 'grant_type': grant_type})
+        return jsonify({'token': token, 'type': 'Bearer', 'expiry': app.exp*60, 'grant_type': grant_type})
     else:
         return jsonify({'success': False, 'msg': 'invalid grant type'}), 400
