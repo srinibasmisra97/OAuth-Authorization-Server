@@ -260,11 +260,12 @@ def oauth_token():
             payload['email'] = data['email']
             payload['role'] = data['role']
 
-        payload['scopes'] = list_to_string(check_scopes(requested=scopes_arr, allocated=role.permissions)) if scopes is not None else ""
+        permitted_scopes = check_scopes(requested=scopes_arr, allocated=role.permissions)
+        payload['scopes'] = list_to_string(permitted_scopes) if scopes is not None else ""
 
         token = generate_jwt(payload=payload, expiry=app.exp)
         memcache_client.delete(key=code)
-        return jsonify({'token': token, 'scopes': scopes, 'type': 'Bearer', 'expiry': app.exp, 'grant_type': grant_type})
+        return jsonify({'token': token, 'scopes': permitted_scopes, 'type': 'Bearer', 'expiry': app.exp, 'grant_type': grant_type})
     elif grant_type == 'client_credentials':
         payload = {
             'iss': 'auth-server.authorization-code',
