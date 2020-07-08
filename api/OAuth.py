@@ -40,6 +40,13 @@ def authorize():
     if redirect_uri not in app.redirect_uris:
         return render_template('login/invalid_uri.html'), 503
 
+    if response_type == 'token':
+        if 'implicit' not in app.grant_types:
+            return render_template('login/invalid_grant_type.html'), 503
+    elif response_type == 'code':
+        if 'authorization_code' not in app.grant_types:
+            return render_template('login/invalid_grant_type.html'), 503
+
     return render_template('login/index.html', data=request.args, app_name=app.name)
 
 
@@ -123,10 +130,15 @@ def redirect_to_uri():
         scope_arr = []
 
     memcache_client = memcache_connection()
-    userinfo = json.loads(memcache_client.get(key=session))
+    cached_data = memcache_client.get(key=session)
+    if cached_data is None:
+        return render_template('errors/404.html'), 404
+    userinfo = json.loads(cached_data)
     memcache_client.delete(key=session)
 
     if response_type == 'code':
+        if 'authorization_code' not in app.grant_types:
+            return render_template('login/invalid_grant_type.html'), 503
         code = generate_key(20)
         data = dict(request.args)
         data['name'] = userinfo['name']
@@ -140,6 +152,8 @@ def redirect_to_uri():
         if state is not None:
             uri = uri + "&state=" + state
     elif response_type == 'token':
+        if 'implicit' not in app.grant_types:
+            return render_template('login/invalid_grant_type.html'), 503
         payload = {
             'iss': 'auth-server.implicit',
             'sub': client_id + '@auth-server',
@@ -198,6 +212,9 @@ def oauth_token():
         return jsonify({'success': False, 'msg': 'invalid credentials'}), 401
 
     memcache_client = memcache_connection()
+
+    if grant_type not in app.grant_types:
+        return jsonify({'success': False, 'msg': 'grant type not allowed'}), 401
 
     if grant_type == 'authorization_code':
         code = request.form.get("code")
