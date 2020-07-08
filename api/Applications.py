@@ -113,6 +113,11 @@ def register():
     else:
         grant_types = [gty.strip() for gty in grant_types.split(",")]
 
+    from main import SUPPORTED_GRANT_TYPES
+    for gty in grant_types:
+        if gty not in SUPPORTED_GRANT_TYPES:
+            return jsonify({'success': False, 'msg': 'grant type not supported'})
+
     if redirect_uris is None:
         redirect_uris = []
     else:
@@ -375,6 +380,11 @@ def set_gtypes():
     grant_types = request_data.get("grant_types")
     if grant_types is None:
         return jsonify({'success': False, 'msg': 'no grant_types provided'}), 400
+
+    from main import SUPPORTED_GRANT_TYPES
+    for gty in grant_types:
+        if gty not in SUPPORTED_GRANT_TYPES:
+            return jsonify({'success': False, 'msg': 'grant type not supported'})
 
     result, msg = app.set_grant_types(grant_types=grant_types)
 
