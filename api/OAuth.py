@@ -22,30 +22,34 @@ def authorize():
     client_id = request.args.get("client_id")
     response_type = request.args.get("response_type")
     redirect_uri = request.args.get("redirect_uri")
-    scope = request.args.get("scope")
-    state = request.args.get("state")
     audience = request.args.get("audience")
+    code_challenge = request.args.get("code_challenge")
+    code_challenge_method = request.args.get("code_challenge_method")
 
     if client_id is None or response_type is None or redirect_uri is None or audience is None:
-        return render_template('login/invalid_credentials.html'), 503
+        return render_template('errors/error.html', status_code=503, error_msg='Invalid credentials passed.'), 503
 
     if response_type not in ['code', 'token']:
-        return render_template('login/invalid_credentials.html'), 503
+        return render_template('errors/error.html', status_code=503, error_msg='Invalid credentials passed.'), 503
+
+    if code_challenge is not None:
+        if code_challenge_method is None:
+            return render_template('errors/error.html', status_code=503, error_msg='Invalid parameters passed.'), 503
 
     app = Application()
     result = app.get_by_key(api_id=audience, key=client_id)
     if not result:
-        return render_template('login/invalid_credentials.html'), 503
+        return render_template('errors/error.html', status_code=503, error_msg='This service is unavailable.'), 503
 
     if redirect_uri not in app.redirect_uris:
-        return render_template('login/invalid_uri.html'), 503
+        return render_template('errors/error.html', status_code=503, error_msg='Invalid redirect uri.'), 503
 
     if response_type == 'token':
         if 'implicit' not in app.grant_types:
-            return render_template('login/invalid_grant_type.html'), 503
+            return render_template('errors/error.html', status_code=503, error_msg='Invalid grant type.'), 503
     elif response_type == 'code':
         if 'authorization_code' not in app.grant_types:
-            return render_template('login/invalid_grant_type.html'), 503
+            return render_template('errors/error.html', status_code=503, error_msg='Invalid grant type.'), 503
 
     return render_template('login/index.html', data=request.args, app_name=app.name)
 
@@ -79,7 +83,7 @@ def signin_password():
     app = Application()
     result = app.get_by_key(api_id=audience, key=client_id)
     if not result:
-        return render_template('login/invalid_credentials.html'), 503
+        return render_template('errors/error.html', status_code=503, error_msg='Invalid credentials passed.'), 503
 
     user = User(email=email)
     result = user.get_by_email(application=app)
@@ -111,18 +115,18 @@ def redirect_to_uri():
     session = request.args.get("session")
 
     if client_id is None or response_type is None or redirect_uri is None or audience is None or session is None:
-        return render_template('login/invalid_credentials.html'), 503
+        return render_template('errors/error.html', status_code=503, error_msg='Invalid credentials passed.'), 503
 
     if response_type not in ['code', 'token']:
-        return render_template('login/invalid_credentials.html'), 503
+        return render_template('errors/error.html', status_code=503, error_msg='Invalid credentials passed.'), 503
 
     app = Application()
     result = app.get_by_key(api_id=audience, key=client_id)
     if not result:
-        return render_template('login/invalid_credentials.html'), 503
+        return render_template('errors/error.html', status_code=503, error_msg='Invalid credentials passed.'), 503
 
     if redirect_uri not in app.redirect_uris:
-        return render_template('login/invalid_uri.html'), 503
+        return render_template('errors/error.html', status_code=503, error_msg='Invalid redirect uri.'), 503
 
     if scope is not None:
         scope_arr = unquote(scope).split(' ')
@@ -132,13 +136,13 @@ def redirect_to_uri():
     memcache_client = memcache_connection()
     cached_data = memcache_client.get(key=session)
     if cached_data is None:
-        return render_template('errors/404.html'), 404
+        return render_template('errors/error.html', status_code=404, error_msg='Resource not found.'), 404
     userinfo = json.loads(cached_data)
     memcache_client.delete(key=session)
 
     if response_type == 'code':
         if 'authorization_code' not in app.grant_types:
-            return render_template('login/invalid_grant_type.html'), 503
+            return render_template('errors/error.html', status_code=503, error_msg='This service is unavailable.'), 503
         code = generate_key(20)
         data = dict(request.args)
         data['name'] = userinfo['name']
@@ -153,7 +157,7 @@ def redirect_to_uri():
             uri = uri + "&state=" + state
     elif response_type == 'token':
         if 'implicit' not in app.grant_types:
-            return render_template('login/invalid_grant_type.html'), 503
+            return render_template('errors/error.html', status_code=503, error_msg='Invalid grant type.'), 503
         payload = {
             'iss': 'auth-server.implicit',
             'sub': client_id + '@auth-server',
