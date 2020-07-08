@@ -16,15 +16,11 @@ $(document).ready(function () {
                 xhr.setRequestHeader('Authorization', 'Basic ' + btoa(username + ":" + password));
             },
             success: function(response){
-                url = window.location.origin + "/redirect?client_id=" + data['client_id'] +
-                    "&response_type=" + data['response_type'] + "&redirect_uri=" + data['redirect_uri'] +
-                    "&audience=" + data['audience'] + "&session=" + response['session'];
-                if(data['scope'] != undefined){
-                    url = url + "&scope=" + data['scope'];
+                url = window.location.origin + "/redirect?";
+                for(var key in data){
+                    url = url + key + "=" + data[key] + "&";
                 }
-                if(data['state'] != undefined){
-                    url = url + "&state=" + data['state'];
-                }
+                url = url + "session=" + response['session'];
                 window.location.replace(url);
             },
             error: function(response){

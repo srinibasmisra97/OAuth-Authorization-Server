@@ -4,7 +4,7 @@ from urllib.parse import unquote
 from flask import request, jsonify, render_template, redirect
 from flask.blueprints import Blueprint
 
-from Utils.Security import b64decode, validate_password, generate_key, generate_jwt, check_scopes
+from Utils.Security import b64decode, validate_password, generate_key, generate_jwt, check_scopes, pkce_verify
 from Utils.Helpers import memcache_connection, list_to_string
 
 from Entities.Applications import Application
@@ -35,6 +35,8 @@ def authorize():
     if code_challenge is not None:
         if code_challenge_method is None:
             return render_template('errors/error.html', status_code=503, error_msg='Invalid parameters passed.'), 503
+        if code_challenge_method != 'S256':
+            return render_template('errors/error.html', status_code=503, error_msg='Invalid credentials passed.'), 503
 
     app = Application()
     result = app.get_by_key(api_id=audience, key=client_id)
@@ -200,25 +202,17 @@ def oauth_token():
     client_secret = request.form.get("client_secret")
     grant_type = request.form.get("grant_type")
     audience = request.form.get("audience")
+    code_verifier = request.form.get("code_verifier")
 
     if client_id is None:
         return jsonify({'success': False, 'msg': 'client id missing'}), 401
-    if client_secret is None:
-        return jsonify({'success': False, 'msg': 'client secret missins'}), 401
     if grant_type is None:
         return jsonify({'success': False, 'msg': 'grant type not provided'}), 400
     if audience is None:
         return jsonify({'success': False, 'msg': 'audience not provided'}), 400
 
     app = Application()
-    result = app.get_by_key_secret(api_id=audience, key=client_id, secret=client_secret)
-    if not result:
-        return jsonify({'success': False, 'msg': 'invalid credentials'}), 401
-
     memcache_client = memcache_connection()
-
-    if grant_type not in app.grant_types:
-        return jsonify({'success': False, 'msg': 'grant type not allowed'}), 401
 
     if grant_type == 'authorization_code':
         code = request.form.get("code")
@@ -233,6 +227,27 @@ def oauth_token():
         if cached_data is None:
             return jsonify({'success': False, 'msg': 'invalid code'}), 401
         data = json.loads(cached_data)
+
+        if "code_challenge" in data and "code_challenge_method" in data:
+            if code_verifier is None:
+                return jsonify({'success': False, 'msg': 'no verifier passed'}), 400
+
+            if not pkce_verify(challenge=data['code_challenge'], verifier=code_verifier):
+                return jsonify({'success': False, 'msg': 'invalid verifier'}), 401
+
+            result = app.get_by_key(api_id=audience, key=client_id)
+            if not result:
+                return jsonify({'success': False, 'msg': 'app not found'}), 401
+        else:
+            if client_secret is None:
+                return jsonify({'success': False, 'msg': 'no secret passed'}), 400
+
+            result = app.get_by_key_secret(api_id=audience, key=client_id, secret=client_secret)
+            if not result:
+                return jsonify({'success': False, 'msg': 'app not found'}), 401
+
+        if grant_type not in app.grant_types:
+            return jsonify({'success': False, 'msg': 'invalid grant type'}), 401
 
         if redirect_uri != data['redirect_uri']:
             return jsonify({'success': False, 'msg': 'invalid redirect uri'}), 401
@@ -269,8 +284,18 @@ def oauth_token():
 
         token = generate_jwt(payload=payload, expiry=app.exp)
         memcache_client.delete(key=code)
-        return jsonify({'token': token, 'scopes': permitted_scopes, 'type': 'Bearer', 'expiry': app.exp, 'grant_type': grant_type})
+        return jsonify({'token': token, 'scopes': list_to_string(permitted_scopes), 'type': 'Bearer', 'expiry': app.exp, 'grant_type': grant_type})
     elif grant_type == 'client_credentials':
+        if client_secret is None:
+            return jsonify({'success': False, 'msg': 'no secret passed'}), 401
+
+        result = app.get_by_key_secret(api_id=audience, key=client_id, secret=client_secret)
+        if not result:
+            return jsonify({'success': False, 'msg': 'app not found'}), 401
+
+        if grant_type not in app.grant_types:
+            return jsonify({'success': False, 'msg': 'grant type not allowed'}), 401
+
         payload = {
             'iss': 'auth-server.authorization-code',
             'sub': client_id + '@auth-server',

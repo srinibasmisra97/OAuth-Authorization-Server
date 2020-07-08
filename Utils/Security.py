@@ -1,4 +1,5 @@
 import base64
+import pkce
 import re
 import python_jwt as jwt, jwcrypto.jwk as jwk, datetime
 import random, secrets, string
@@ -32,7 +33,7 @@ def b64decode(base64_message):
     return message
 
 
-def b64urlencoded(message):
+def b64urlencode(message):
     """
     This function performs url safe base64 encoding.
     :param message: Message to encode,
@@ -41,13 +42,23 @@ def b64urlencoded(message):
     return base64.urlsafe_b64encode(message)
 
 
-def b64urldecoded(message):
+def b64urldecode(message):
     """
     This function performs url safe base64 decoding.
     :param message: Message to decode.
     :return: Decoded string.
     """
     return base64.urlsafe_b64decode(message)
+
+
+def pkce_verify(challenge, verifier):
+    """
+    This function checks if the code challenge is for the code verifier.
+    :param challenge: PKCE Code Challenge.
+    :param verifier: PKCE Code Verifier.
+    :return: Boolean.
+    """
+    return challenge == pkce.get_code_challenge(verifier)
 
 
 def validate_email(email):
