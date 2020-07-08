@@ -14,13 +14,13 @@ CONFIG_ENV = os.environ.get('CONFIG_ENV') or 'DEV'
 cfg = configparser.RawConfigParser()
 cfg.read(CONFIG_FILEPATH)
 
-MONGO_HOST = str(cfg.get(CONFIG_ENV, "MONGO_HOST"))
-MONGO_PORT = int(cfg.get(CONFIG_ENV, "MONGO_PORT"))
-MONGO_USERNAME = str(cfg.get(CONFIG_ENV, "MONGO_USERNAME"))
-MONGO_PASSWORD = str(cfg.get(CONFIG_ENV, "MONGO_PASSWORD"))
-MONGO_DB = str(cfg.get(CONFIG_ENV, "MONGO_DB"))
-MEMCACHE_HOST = str(cfg.get(CONFIG_ENV, "MEMCACHE_HOST"))
-MEMCACHE_PORT = str(cfg.get(CONFIG_ENV, "MEMCACHE_PORT"))
+MONGO_HOST = str(cfg.get(CONFIG_ENV, "MONGO_HOST")) if cfg.has_option(CONFIG_ENV, "MONGO_HOST") else "localhost"
+MONGO_PORT = int(cfg.get(CONFIG_ENV, "MONGO_PORT")) if cfg.has_option(CONFIG_ENV, "MONGO_PORT") else 27017
+MONGO_USERNAME = str(cfg.get(CONFIG_ENV, "MONGO_USERNAME")) if cfg.has_option(CONFIG_ENV, "MONGO_USERNAME") else ""
+MONGO_PASSWORD = str(cfg.get(CONFIG_ENV, "MONGO_PASSWORD")) if cfg.has_option(CONFIG_ENV, "MONGO_PASSWORD") else ""
+MONGO_DB = str(cfg.get(CONFIG_ENV, "MONGO_DB")) if cfg.has_option(CONFIG_ENV, "MONGO_DB") else "authDb"
+MEMCACHE_HOST = str(cfg.get(CONFIG_ENV, "MEMCACHE_HOST")) if cfg.has_option(CONFIG_ENV, "MEMCACHE_HOST") else "localhost"
+MEMCACHE_PORT = int(cfg.get(CONFIG_ENV, "MEMCACHE_PORT")) if cfg.has_option(CONFIG_ENV, "MEMCACHE_PORT") else 11211
 
 SUPPORTED_GRANT_TYPES = ['implicit', 'authorization_code', 'client_credentials']
 

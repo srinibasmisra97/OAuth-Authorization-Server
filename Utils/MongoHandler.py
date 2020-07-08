@@ -23,6 +23,9 @@ class ConnectDB(object):
         This function returns the database object.
         :return: Database Object
         """
-        conn = MongoClient(host=self.host, port=self.port, username=self.username, password=self.password, authSource=self.db)
+        if self.username != "" and self.password != "":
+            conn = MongoClient(host=self.host, port=self.port, username=self.username, password=self.password, authSource=self.db)
+        else:
+            conn = MongoClient(host=self.host, port=self.port)
 
         return conn[self.db]
