@@ -24,7 +24,7 @@ def db_init():
 
 class Application(object):
 
-    def __init__(self, id_=None, name="", api="", exp=20, owner=None, redirect_uris=[], permissions=[], roles=[], users=[], creds=[]):
+    def __init__(self, id_=None, name="", api="", exp=20, owner=None, grant_types=[], redirect_uris=[], permissions=[], roles=[], users=[], creds=[]):
         """
         Init method for an Application.
         :param id_: Mongodb document id.
@@ -32,6 +32,7 @@ class Application(object):
         :param api: App id.
         :param exp: App token expiry.
         :param owner: App owner.
+        :param grant_types: Allowed grant types for the application.
         :param redirect_uris: Allowed Redirect URIs for the application.
         :param permissions: Permissions for the application.
         :param roles: Roles defined for the app.
@@ -43,6 +44,7 @@ class Application(object):
         self.api = api
         self.exp = exp
         self.owner = owner
+        self.grant_types = grant_types
         self.redirect_uris = redirect_uris
         self.permissions = permissions
         self.roles = roles
@@ -64,6 +66,8 @@ class Application(object):
             self.exp = int(doc['exp'])
         if 'owner' in doc:
             self.owner = doc['owner']
+        if 'grant_types' in doc:
+            self.grant_types = doc['grant_types']
         if 'redirect_uris' in doc:
             self.redirect_uris = doc['redirect_uris']
         if 'permissions' in doc:
@@ -95,7 +99,8 @@ class Application(object):
             'exp': self.exp,
             'owner': client.id_,
             'permissions': [],
-            'redirect_uris': [],
+            'grant_types': self.grant_types,
+            'redirect_uris': self.redirect_uris,
             'roles': [],
             'users': [],
             'creds': [
@@ -268,7 +273,7 @@ class Application(object):
 
     def set_redirect_uris(self, uris):
         """
-        This function simply pushes an uri in to the allowed redirect uris list.
+        This function simply sets the uris in to the allowed redirect uris list.
         :param uri: URI to add.
         :return: Update object.
         """
@@ -276,6 +281,21 @@ class Application(object):
 
         condition = {'api': self.api}
         data = {'$set': {'redirect_uris': uris}}
+
+        result = Update().update_one_by_condition(db_obj=db_obj, collection=COL_NAME, condition=condition, data=data)
+
+        return result, "updated" if result else "failed"
+
+    def set_grant_types(self, grant_types):
+        """
+        This function simply sets the grant_types in the allowed grant_types for the app.
+        :param grant_types: Grant types to add.
+        :return: Update object.
+        """
+        db_obj = db_init()
+
+        condition = {'api': self.api}
+        data = {'$set': {'grant_types': grant_types}}
 
         result = Update().update_one_by_condition(db_obj=db_obj, collection=COL_NAME, condition=condition, data=data)
 

@@ -83,7 +83,7 @@ def register():
             'msg': 'invalid content type'
         }), 400
 
-    if len(request.form) > 3:
+    if len(request.form) > 5:
         return jsonify({
             'success': False,
             'msg': 'too many parameters'
@@ -92,6 +92,8 @@ def register():
     app_name = request.form.get("name")
     api_id = request.form.get("api")
     expiry = request.form.get("exp")
+    grant_types = request.form.get("grant_types")
+    redirect_uris = request.form.get("redirect_uris")
 
     if app_name is None:
         return jsonify({
@@ -106,6 +108,16 @@ def register():
     elif expiry is None:
         expiry = 15
 
+    if grant_types is None:
+        grant_types = []
+    else:
+        grant_types = [gty.strip() for gty in grant_types.split(",")]
+
+    if redirect_uris is None:
+        redirect_uris = []
+    else:
+        redirect_uris = [uri.strip() for uri in redirect_uris.split(",")]
+
     authorization = str(request.headers.get("Authorization").encode('ascii', 'ignore').decode('utf-8'))
     if authorization.split(" ")[0] == 'Basic':
         decoded = b64decode(authorization.split(" ")[1])
@@ -119,7 +131,7 @@ def register():
     client = Clients(email=email)
     client.get_by_email(email=email)
 
-    app = Application(name=app_name, api=api_id, exp=expiry)
+    app = Application(name=app_name, api=api_id, exp=expiry, redirect_uris=redirect_uris, grant_types=grant_types)
     result, msg = app.register(client=client)
 
     if result is None:
@@ -313,6 +325,58 @@ def set_uris():
         return jsonify({'success': False, 'msg': 'no uris provided'}), 400
 
     result, msg = app.set_redirect_uris(uris=uris)
+
+    return jsonify({
+        'success': True if result else False,
+        'msg': msg
+    })
+
+
+@app_Applications.route('/gtypes', methods=['PUT'])
+def set_gtypes():
+    """
+    This API sets the allowed grant_types of the application.
+    :return: 200 OK, 400 Bad Request, 401 Unauthorized.
+    """
+    if request.headers.get('Content-Type') != "application/json":
+        return jsonify({
+            'success': False,
+            'msg': 'invalid content type'
+        }), 400
+
+    authorization = str(request.headers.get("Authorization").encode('ascii', 'ignore').decode('utf-8'))
+    if authorization.split(" ")[0] == 'Basic':
+        decoded = b64decode(authorization.split(" ")[1])
+        email = decoded.split(":")[0]
+    elif authorization.split(" ")[0] == 'Bearer':
+        headers, claims, msg = verify_jwt(authorization.split(" ")[1])
+        if headers is None:
+            return jsonify({'success': False, 'msg': msg}), 401
+        email = claims['email']
+
+    client = Clients(email=email)
+    client.get_by_email(email=email)
+
+    request_data = request.get_json()
+
+    api_id = request_data.get("api")
+    if api_id is None:
+        return jsonify({'success': False, 'msg': 'no api id provided'}), 400
+
+    app = Application(api=api_id)
+    result = app.get_by_api_id(api_id=api_id)
+
+    if not result:
+        return jsonify({
+            'success': False,
+            'msg': 'app not found'
+        })
+
+    grant_types = request_data.get("grant_types")
+    if grant_types is None:
+        return jsonify({'success': False, 'msg': 'no grant_types provided'}), 400
+
+    result, msg = app.set_grant_types(grant_types=grant_types)
 
     return jsonify({
         'success': True if result else False,
