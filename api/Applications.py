@@ -260,6 +260,8 @@ def delete_app():
             'msg': msg
         })
 
+    client.remove_app(application=app)
+
     return jsonify({
         'success': True if result else False,
         'msg': msg

@@ -1,6 +1,6 @@
 from bson.objectid import ObjectId
 
-from Utils.DBOperations import Read, Insert, Delete
+from Utils.DBOperations import Read, Insert, Delete, Update
 
 db_obj = None
 
@@ -91,7 +91,7 @@ class Clients(object):
             self.apps = doc["apps"]
 
 
-    def get_by_email(self, email, projection={}):
+    def get_by_email(self, email="", projection={}):
         """
         This is used to get the client details based on developer email.
         :param email: Email of the developer.
@@ -99,6 +99,9 @@ class Clients(object):
         :return: Client document.
         """
         db_obj = db_init()
+
+        if email == "":
+            email = self.email
 
         conditions = {
             "email": email
@@ -126,30 +129,37 @@ class Clients(object):
             self.setattr(result)
         return result
 
-    def get_by_api_id(self, api_id, projection={}):
+    def remove_app(self, application):
         """
-        This is used to get the client document based on the unique api id.
-        :param api_id: Unique application id.
-        :param projection: Projection for mongo query.
-        :return: Client document.
+        This function removes an application.
+        :param application: Application object.
+        :return: Update object.
         """
         db_obj = db_init()
 
-        conditions = {
-            "apps.api": api_id
+        condition = {
+            'email': self.email,
+            'apps': application.id_
         }
 
-        result = Read().find_by_condition(db_obj=db_obj, collection=COL_NAME, condition=conditions, projection=projection)
+        data = {
+            '$pull': {'apps': application.id_}
+        }
 
-        return result
+        result = Update().update_one_by_condition(db_obj=db_obj, collection=COL_NAME, condition=condition, data=data)
 
-    def delete(self, email):
+        return result, "updated" if result else "failed"
+
+    def delete(self, email=""):
         """
         This function deletes a client document for a specific email id.
         :param email: Email id of the registered client.
         :return: Deleted client document.
         """
         db_obj = db_init()
+
+        if email == "":
+            email = self.email
 
         condition = {
             'email': email

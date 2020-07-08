@@ -13,9 +13,9 @@ class Read(object):
         """
         try:
             if projection:
-                result = db_obj[collection].find_one({'_id': ObjectId(id)}, projection)
+                result = db_obj[collection].find_one({'_id': id}, projection)
             else:
-                result = db_obj[collection].find_one({'_id': ObjectId(id)})
+                result = db_obj[collection].find_one({'_id': id})
             return result
         except:
             return {}
@@ -85,7 +85,7 @@ class Delete(object):
         """
 
         try:
-            result = db_obj[collection].delete_one({'_id': ObjectId(id)})
+            result = db_obj[collection].delete_one({'_id': id})
             return result
         except Exception as e:
             print(e)
@@ -138,9 +138,9 @@ class Update(object):
 
         try:
             if array_filters:
-                result = db_obj[collection].update_one({'_id': ObjectId(id)}, data, array_filters=array_filters)
+                result = db_obj[collection].update_one({'_id': id}, data, array_filters=array_filters)
             else:
-                result = db_obj[collection].update_one({'_id':ObjectId(id)}, data)
+                result = db_obj[collection].update_one({'_id': id}, data)
             return result
         except Exception as e:
             print(e)
