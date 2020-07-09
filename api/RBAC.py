@@ -470,13 +470,10 @@ def roles():
         if name is not None:
             result_name, msg_name = role.update_name(client=client, application=app, name=name)
 
-        if not result_permissions:
-            return jsonify({'success': False,'msg': msg_permissions})
-
-        if not result_name:
-            return jsonify({'success': False, 'msg': msg_name})
-
-        return jsonify({'success': True, 'msg': 'updated'})
+        return jsonify({
+            'success': bool(result_permissions or result_name),
+            'msg': 'updated' if bool(result_name or result_permissions) else 'failed'
+        })
 
 
 @app_RBAC.route('/api/rbac/users', methods=['GET', 'POST', 'PUT', 'DELETE'])

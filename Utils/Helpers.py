@@ -7,7 +7,7 @@ def memcache_connection():
     :return: Memcache client.
     """
     from main import MEMCACHE_HOST, MEMCACHE_PORT
-    client = memcache.Client(servers=[MEMCACHE_HOST + ":" + MEMCACHE_PORT])
+    client = memcache.Client(servers=[MEMCACHE_HOST + ":" + str(MEMCACHE_PORT)])
     return client
 
 
