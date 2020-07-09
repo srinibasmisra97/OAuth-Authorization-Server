@@ -150,6 +150,7 @@ def redirect_to_uri():
         data['name'] = userinfo['name']
         data['email'] = userinfo['email']
         data['role'] = userinfo['role']
+        data['id_'] = userinfo['id_']
         memcache_client.add(key=code, val=json.dumps(data), time=86400)
 
         uri = redirect_uri + "?code=" + code
@@ -162,7 +163,7 @@ def redirect_to_uri():
             return render_template('errors/error.html', status_code=503, error_msg='Invalid grant type.'), 503
         payload = {
             'iss': 'auth-server.implicit',
-            'sub': client_id + '@auth-server',
+            'sub': userinfo['id_'],
             'aud': app.api,
             'gty': 'implicit',
             'app': app.name
@@ -262,7 +263,7 @@ def oauth_token():
 
         payload = {
             'iss': 'auth-server.authorization-code',
-            'sub': client_id + '@auth-server',
+            'sub': data['id_'],
             'aud': app.api,
             'gty': 'authorization_code',
             'app': app.name
@@ -297,8 +298,8 @@ def oauth_token():
             return jsonify({'success': False, 'msg': 'grant type not allowed'}), 401
 
         payload = {
-            'iss': 'auth-server.authorization-code',
-            'sub': client_id + '@auth-server',
+            'iss': 'auth-server.client_credentials',
+            'sub': client_id + '@clients',
             'aud': app.api,
             'gty': 'client_credentials',
             'app': app.name

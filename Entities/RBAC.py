@@ -1,7 +1,7 @@
 from Utils.DBOperations import Read, Update
 from Entities.Clients import Clients
 
-import json
+import json, uuid
 
 db_obj = None
 
@@ -566,14 +566,16 @@ class Role(object):
 
 class User(object):
 
-    def __init__(self, email="", password="", name="", role=""):
+    def __init__(self, id_="", email="", password="", name="", role=""):
         """
         Init function for creating a member object.
+        :param id_: Unique id of the user.
         :param email: Email id.
         :param password: Password hash.
         :param name: Name
         :param role: Role id.
         """
+        self.id_ = id_
         self.email = email
         self.password = password
         self.name = name
@@ -584,20 +586,22 @@ class User(object):
         Returns a string of the user object.
         :return: String.
         """
-        return json.dumps({'email': self.email, 'name': self.name, 'role': self.role})
+        return json.dumps({'email': self.email, 'name': self.name, 'role': self.role, 'id_': self.id_})
 
     def json(self):
         """
         Returns a json object.
         :return: JSON.
         """
-        return {'email': self.email, 'name': self.name, 'role': self.role}
+        return {'email': self.email, 'name': self.name, 'role': self.role, 'id_': self.id_}
 
     def setattr(self, doc):
         """
         Set object attributes from document.
         :param doc: Document.
         """
+        if "id_" in doc:
+            self.id_ = doc['id_']
         if "email" in doc:
             self.email = doc['email']
         if "password" in doc:
@@ -606,6 +610,35 @@ class User(object):
             self.name = doc['name']
         if "role" in doc:
             self.role = doc['role']
+
+    def get_by_id(self, application, client=None, id_=""):
+        """
+        Get an user by its id.
+        :param application: Application object.
+        :param client: Client object.
+        :param id_: Id to look for.
+        :return: Document
+        """
+        db_obj = db_init()
+
+        if client is not None:
+            if client.email != Clients().get_by_id(oid=application.owner)['email']:
+                return None, "not allowed"
+
+        if id_ == "":
+            id_ = self.id_
+
+        condition = {'api': application.api, 'users.id_': id_}
+
+        result = Read().find_by_condition(db_obj=db_obj, collection=COL_NAME, condition=condition)
+
+        for app in result:
+            for user in app['users']:
+                if user['id_'] == id_:
+                    self.setattr(user)
+                    return user
+
+        return {}
 
     def get_by_email(self, application, client=None, email=""):
         """
@@ -661,11 +694,14 @@ class User(object):
         if name == "":
             name = self.name
 
+        self.id_ = str(uuid.uuid1().hex)
+
         condition = {'api': application.api}
 
         data = {
             '$push': {
                 'users': {
+                    'id_': self.id_,
                     'email': email,
                     'password': password,
                     'name': name,
@@ -696,6 +732,7 @@ class User(object):
         common = []
         for value in existing:
             for user in users:
+                user['id_'] = str(uuid.uuid1().hex)
                 if value['email'] == user['email']:
                     common.append(value)
 
