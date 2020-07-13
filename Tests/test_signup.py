@@ -1,6 +1,4 @@
-import requests
-import pytest
-import base64
+import requests, pytest, base64, configparser, os
 
 
 def b64encode(message):
@@ -27,11 +25,17 @@ def b64decode(base64_message):
     return message
 
 
-URL = "http://localhost:5000/signup"
-EMAIL = "testemail@testexample.com"
-PASSWORD = "TestEmail1!"
-FIRST_NAME = "Testfirstname"
-LAST_NAME = "Testlastname"
+CONFIG_FILEPATH = os.path.join(os.getcwd(), "testSetup.cfg")
+CONFIG_ENV = os.environ.get('CONFIG_ENV') or 'TEST'
+
+cfg = configparser.RawConfigParser()
+cfg.read(CONFIG_FILEPATH)
+
+URL = str(cfg.get(CONFIG_ENV, "URL")) + "/signup"
+EMAIL = str(cfg.get(CONFIG_ENV, "EMAIL"))
+PASSWORD = str(cfg.get(CONFIG_ENV, "PASSWORD"))
+FIRST_NAME = str(cfg.get(CONFIG_ENV, "FIRST_NAME"))
+LAST_NAME = str(cfg.get(CONFIG_ENV, "LAST_NAME"))
 HEADERS = {'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': 'Basic ' + b64encode(EMAIL + ":" + PASSWORD)}
 
 
