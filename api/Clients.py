@@ -100,6 +100,9 @@ def signin():
     This api returns an access token for admin usage.
     :return: 200 OK, 401 Unauthorized, 400 Bad Request.
     """
+    if request.headers.get("Authorization") is None:
+        return jsonify({'success': False, 'msg': 'unauthorized'}), 401
+
     authorization = str(request.headers.get("Authorization").encode('ascii', 'ignore').decode('utf-8'))
     if authorization.split(" ")[0] != 'Basic':
         return jsonify({
