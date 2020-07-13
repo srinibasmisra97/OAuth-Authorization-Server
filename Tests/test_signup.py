@@ -113,4 +113,4 @@ def test_signup_api_check():
     """
     response = requests.post(URL, headers=headers, data={'first_name': FIRST_NAME, 'last_name': LAST_NAME})
     assert response.status_code == 200, "Error in user sign up"
-    assert response.headers.get("Authorization") is not None, "Error in creating user"
+    assert response.json()['msg'] == "success", "Error in user sign up"
