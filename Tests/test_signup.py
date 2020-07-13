@@ -2,12 +2,6 @@ import requests
 import pytest
 import base64
 
-URL = "http://localhost:5000/signup"
-EMAIL = "testemail@testexample.com"
-PASSWORD = "TestEmail1!"
-FIRST_NAME = "Testfirstname"
-LAST_NAME = "Testlastname"
-
 
 def b64encode(message):
     """
@@ -33,8 +27,16 @@ def b64decode(base64_message):
     return message
 
 
+URL = "http://localhost:5000/signup"
+EMAIL = "testemail@testexample.com"
+PASSWORD = "TestEmail1!"
+FIRST_NAME = "Testfirstname"
+LAST_NAME = "Testlastname"
+HEADERS = {'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': 'Basic ' + b64encode(EMAIL + ":" + PASSWORD)}
+
+
 @pytest.mark.signup
-def test_signup_api_check():
+def test_signup_request_method():
     """
     Check for valid request method only.
     """
@@ -44,12 +46,20 @@ def test_signup_api_check():
     assert response.status_code == 405, "Invalid status code for PUT request"
     response = requests.delete(URL)
     assert response.status_code == 405, "Invalid status code for DELETE request"
+
+
+@pytest.mark.signup
+def test_signup_content_type():
     """
     Invalid Content-Type check.
     """
     response = requests.post(URL, headers={'Content-Type': 'application/json'})
     assert response.status_code == 400, "Invalid status code for application/json content-type"
     assert not response.json()['success'], "Invalid response for application/json content-type"
+
+
+@pytest.mark.signup
+def test_signup_auth_header():
     """
     No authorization header check.
     """
@@ -70,17 +80,20 @@ def test_signup_api_check():
                                            'Authorization': 'Basic ' + b64encode(EMAIL)})
     assert response.status_code == 400, "Invalid status code for invalid username:password string"
     assert not response.json()['success'], "Invalid status code for invalid username:password string"
+
+
+@pytest.mark.signup
+def test_signup_parameters():
     """
     First Name not provided check.
     """
-    headers = {'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': 'Basic ' + b64encode(EMAIL + ":" + PASSWORD)}
-    response = requests.post(URL, headers=headers)
+    response = requests.post(URL, headers=HEADERS)
     assert response.status_code == 400, "Invalid status code for no first name provided"
     assert response.json()['msg'] == "no first name provided", "Invalid response message for first name not provided"
     """
     Last Name not provided check.
     """
-    response = requests.post(URL, headers=headers, data={'first_name': 'Srinibas'})
+    response = requests.post(URL, headers=HEADERS, data={'first_name': 'Srinibas'})
     assert response.status_code == 400, "Invalid status code for no last name provided"
     assert response.json()['msg'] == "no last name provided", "Invalid response message for last name not provided"
     """
@@ -99,18 +112,32 @@ def test_signup_api_check():
     """
     Invalid First name.
     """
-    response = requests.post(URL, headers=headers, data={'first_name': 'Test123', 'last_name': 'Test123'})
+    response = requests.post(URL, headers=HEADERS, data={'first_name': 'Test123', 'last_name': 'Test123'})
     assert response.status_code == 400, "Invalid status code for invalid first name"
     assert response.json()['msg'] == "invalid first name", "Invalid response message for invalid first name provided"
     """
     Invalid Last name.
     """
-    response = requests.post(URL, headers=headers, data={'first_name': 'Testfirstname', 'last_name': 'Test123'})
+    response = requests.post(URL, headers=HEADERS, data={'first_name': 'Testfirstname', 'last_name': 'Test123'})
     assert response.status_code == 400, "Invalid status code for invalid last name"
     assert response.json()['msg'] == "invalid last name", "Invalid response message for invalid last name provided"
+
+
+@pytest.mark.signup
+def test_signup_signup():
     """
     Successful sign up.
     """
-    response = requests.post(URL, headers=headers, data={'first_name': FIRST_NAME, 'last_name': LAST_NAME})
+    response = requests.post(URL, headers=HEADERS, data={'first_name': FIRST_NAME, 'last_name': LAST_NAME})
     assert response.status_code == 200, "Error in user sign up"
     assert response.json()['msg'] == "success", "Error in user sign up"
+
+
+@pytest.mark.signup
+def test_signup_existing():
+    """
+    Existing user not allowed check.
+    """
+    response = requests.post(URL, headers=HEADERS, data={'first_name': FIRST_NAME, 'last_name': LAST_NAME})
+    assert response.status_code == 200, "Error in user sign up"
+    assert response.json()['msg'] == "existing", "Error in user sign up"
