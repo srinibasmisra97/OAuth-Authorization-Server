@@ -1,6 +1,6 @@
 # Test Cases
 ### Sign Up
-#### http://locatalhost:5000/signup
+#### http://localhost:5000/signup
 
 * Valid request method check.
 * Content Type check.
