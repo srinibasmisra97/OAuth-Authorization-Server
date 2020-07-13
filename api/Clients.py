@@ -24,7 +24,7 @@ def signup():
     if request.headers.get("Authorization") is None:
         return jsonify({'success': False, 'msg': 'unauthorized'}), 401
 
-    authorization = str(request.headers.get("Authorization").encode('ascii','ignore').decode('utf-8'))
+    authorization = str(request.headers.get("Authorization").encode('ascii', 'ignore').decode('utf-8'))
     if authorization.split(" ")[0] != 'Basic':
         return jsonify({
             'success': False,
