@@ -12,40 +12,15 @@ from Entities.Applications import Application
 app_RBAC = Blueprint('RBAC', __name__)
 
 
-@app_RBAC.before_request
+@app_Applications.before_request
 def before_request():
     """
-    Before request email and password validation.
+        Before request email and password validation.
     """
     if request.headers.get("Authorization") is None:
         return jsonify({'success': False, 'msg': 'unauthorized'}), 401
     authorization = str(request.headers.get("Authorization").encode('ascii', 'ignore').decode('utf-8'))
-    if authorization.split(" ")[0] == 'Basic':
-        decoded = b64decode(authorization.split(" ")[1])
-        if ":" not in decoded:
-            return jsonify({
-                'success': False,
-                'msg': 'no username password provided'
-            }), 400
-
-        email = decoded.split(":")[0]
-        password = decoded.split(":")[1]
-
-        client = Clients(email=email)
-        client_doc = client.get_by_email(email=email)
-
-        if not client_doc:
-            return jsonify({
-                'success': False,
-                'msg': 'please sign up first'
-            })
-
-        if not validate_password(password=password, hash=client.password):
-            return jsonify({
-                'success': False,
-                'msg': 'invalid password'
-            }), 401
-    elif authorization.split(" ")[0] == 'Bearer':
+    if authorization.split(" ")[0] == 'Bearer':
         token = authorization.split(" ")[1]
         headers, claims, msg = verify_jwt(token=token)
         if headers is None:

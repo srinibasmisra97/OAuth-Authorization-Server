@@ -8,7 +8,9 @@ from api.Applications import app_Applications
 from api.RBAC import app_RBAC
 from api.OAuth import app_OAuth
 
-if os.path.isfile("configs/environment.cfg"):
+CONFIG_METHOD = str(os.environ.get("CONFIG_METHOD")) if os.environ.get("CONFIG_METHOD") else "CFG"
+
+if CONFIG_METHOD == "CFG":
     CONFIG_FILEPATH = os.path.join(os.getcwd(), "configs/environment.cfg")
     CONFIG_ENV = os.environ.get('CONFIG_ENV') or 'DEV'
 
@@ -22,7 +24,7 @@ if os.path.isfile("configs/environment.cfg"):
     MONGO_DB = str(cfg.get(CONFIG_ENV, "MONGO_DB")) if cfg.has_option(CONFIG_ENV, "MONGO_DB") else "authDb"
     MEMCACHE_HOST = str(cfg.get(CONFIG_ENV, "MEMCACHE_HOST")) if cfg.has_option(CONFIG_ENV, "MEMCACHE_HOST") else "localhost"
     MEMCACHE_PORT = int(cfg.get(CONFIG_ENV, "MEMCACHE_PORT")) if cfg.has_option(CONFIG_ENV, "MEMCACHE_PORT") else 11211
-else:
+elif CONFIG_METHOD == "ENV":
     MONGO_HOST = str(os.environ.get("MONGO_HOST")) if os.environ.get("MONGO_HOST") is not None else "localhost"
     MONGO_PORT = int(os.environ.get("MONGO_PORT")) if os.environ.get("MONGO_PORT") is not None else 27017
     MONGO_USERNAME = str(os.environ.get("MONGO_USERNAME")) if os.environ.get("MONGO_USERNAME") is not None else ""
@@ -30,6 +32,9 @@ else:
     MONGO_DB = str(os.environ.get("MONGO_DB")) if os.environ.get("MONGO_DB") is not None else "authDb"
     MEMCACHE_HOST = str(os.environ.get("MEMCACHE_HOST")) if os.environ.get("MEMCACHE_HOST") is not None else "localhost"
     MEMCACHE_PORT = int(os.environ.get("MEMCACHE_PORT")) if os.environ.get("MEMCACHE_PORT") is not None else 11211
+else:
+    print("Invalid config method.")
+    exit(1)
 
 SUPPORTED_GRANT_TYPES = ['implicit', 'authorization_code', 'client_credentials']
 
