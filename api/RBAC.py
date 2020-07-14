@@ -12,7 +12,7 @@ from Entities.Applications import Application
 app_RBAC = Blueprint('RBAC', __name__)
 
 
-@app_Applications.before_request
+@app_RBAC.before_request
 def before_request():
     """
         Before request email and password validation.
