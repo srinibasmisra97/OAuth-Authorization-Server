@@ -4,10 +4,11 @@
 
 * Valid request method check.
 * Content Type check.
-* No Authorization header check.
-* Invalid Authorization header check:
-    * Basic Authorization header check.
-    * Invalid username:password string.
+* Authorization header checks:
+    * No Authorization header check.
+    * Invalid Authorization header check:
+        * Basic Authorization header check.
+        * Invalid username:password string.
 * First Name and Last Name not provided check.
 * Invalid email check.
 * Check password requirement check.
@@ -18,10 +19,11 @@
 #### http://localhost:5000/signin
 
 * Valid request method check.
-* No Authorization header check.
-* Invalid Authorization header check:
-    * basic Authorization header check.
-    * Invalid username:password string.
+* Authorization header checks:
+    * No Authorization header check.
+    * Invalid Authorization header check:
+        * Basic Authorization header check.
+        * Invalid username:password string.
 * User not found check.
 * Invalid password check.
 * Successful sign in check.
@@ -33,3 +35,24 @@
         2. aud: admin.apis
         3. sub in payload.
         4. email, first_name, last_name check.
+
+### Registering an App
+#### http://localhost:5000/register
+
+* Valid request method check.
+* Authorization header checks:
+    * No authorization header.
+    * Invalid authorization header checks:
+        * Bearer token check.
+        * Invalid token check.
+    * User present check.
+    * User email verification.
+* Content-Type check.
+* App name not provided check.
+* App API ID not provided check.
+* Grant types check.
+* App successful register check.
+* Response header checks:
+    * Authorization header present.
+    * Basic Authorization header check.
+    * Base64 client_id:client_secret message check.
