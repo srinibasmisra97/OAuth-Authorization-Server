@@ -33,7 +33,7 @@ def before_request():
         if not client.get_by_id(oid=id):
             return jsonify({
                 'success': False,
-                'msg': 'user not fount'
+                'msg': 'user not found'
             }), 401
 
         if client.email != email:

@@ -52,7 +52,7 @@
     * App name not provided check.
     * App API ID not provided check.
     * Grant types check.
-    * App successful register check.
+* App successful register check.
 * Response header checks:
     * Authorization header present.
     * Basic Authorization header check.
