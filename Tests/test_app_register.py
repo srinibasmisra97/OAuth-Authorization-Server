@@ -177,6 +177,19 @@ def test_app_parameters():
     """
     response = requests.post(URL, headers=HEADERS, data={'name': APP_NAME, 'api': APP_API, 'grant_types': APP_GRANT_TYPE, 'redirect_uris': APP_REDIRECT_URIS})
     assert response.status_code == 200, "Error in registering app"
+    """
+    Response Authorization header check.
+    """
+    assert response.headers.get("Authorization") is not None, "No authorization header present in response"
+    """
+    Response Basic Authorization header check.
+    """
+    assert response.headers.get("Authorization").split(" ")[0] == "Basic", "Invalid authorization header in response"
+    """
+    Client ID, Client Secret check.
+    """
+    decoded = b64decode(response.headers.get("Authorization").split(" ")[1])
+    assert ":" in decoded, "Invalid client_id:client_secret basic authentication header"
 
 
 @pytest.mark.run(order=8)
@@ -190,3 +203,4 @@ def test_app_register_existing():
     assert response.status_code == 200, "Error in registering app"
     assert not response.json()['success'], "Error in registering app"
     assert response.json()['msg'] == "existing api id", "Error in registering app"
+
