@@ -137,6 +137,12 @@ def permissions():
                 'msg': 'no permissions provided'
             }), 400
 
+        for perm in permissions:
+            if "name" not in perm:
+                return jsonify({'success': False, 'msg': 'no name provided'}), 400
+            if "value" not in perm:
+                return jsonify({'success': False, 'msg': 'no value provided'}), 400
+
         permission = Permission()
         result, msg = permission.add_many(client=client, application=app, permissions=permissions)
 
