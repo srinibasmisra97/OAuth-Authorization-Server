@@ -57,3 +57,26 @@
     * Authorization header present.
     * Basic Authorization header check.
     * Base64 client_id:client_secret message check.
+
+### Generating New Key Secret Pair and Deleting Key
+#### http://localhost:5000/key
+
+* Valid request method check.
+* Authorization header checks:
+    * No authorization header.
+    * Invalid authorization header checks:
+        * Bearer token check.
+        * Invalid token check.
+    * User present check.
+    * User email verification.
+* Content-Type check.
+* Parameters check:
+    * App name not provided check.
+    * App API ID not provided check.
+    * Grant types check.
+* Generate new key pair.
+* Response header checks:
+    * Authorization header present.
+    * Basic Authorization header check.
+    * Base64 client_id:client_secret message check.
+* Delete key.

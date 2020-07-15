@@ -66,7 +66,7 @@ cfg = configparser.RawConfigParser()
 cfg.read(CONFIG_FILEPATH)
 
 AUTH_TOKEN_ENDPOINT = str(cfg.get(CONFIG_ENV, "URL")) + "/signin"
-URL = str(cfg.get(CONFIG_ENV, "URL")) + "/register"
+URL = str(cfg.get(CONFIG_ENV, "URL")) + "/key"
 EMAIL = str(cfg.get(CONFIG_ENV, "EMAIL"))
 PASSWORD = str(cfg.get(CONFIG_ENV, "PASSWORD"))
 FIRST_NAME = str(cfg.get(CONFIG_ENV, "FIRST_NAME"))
@@ -75,6 +75,8 @@ APP_NAME = str(cfg.get(CONFIG_ENV, "APP_NAME"))
 APP_API = str(cfg.get(CONFIG_ENV, "APP_API"))
 APP_GRANT_TYPE = str(cfg.get(CONFIG_ENV, "APP_GRANT_TYPES"))
 APP_REDIRECT_URIS = str(cfg.get(CONFIG_ENV, "APP_REDIRECT_URIS"))
+CLIENT_ID = None
+CLIENT_SECRET = None
 
 
 @pytest.mark.skip
@@ -86,37 +88,35 @@ def get_token():
     return response.headers.get("Authorization").split(" ")[1]
 
 
-@pytest.mark.app_register
-def test_app_register_request_method():
+@pytest.mark.app_key
+def test_app_key_request_method():
     """
     Check for valid request method only.
     """
     response = requests.get(URL)
     assert response.status_code == 405, "Invalid status code for GET request"
-    response = requests.put(URL)
+    response = requests.post(URL)
     assert response.status_code == 405, "Invalid status code for PUT request"
-    response = requests.delete(URL)
-    assert response.status_code == 405, "Invalid status code for DELETE request"
 
 
-@pytest.mark.app_register
-def test_app_register_auth_header():
+@pytest.mark.app_key
+def test_app_key_auth_header():
     """
     No authorization header.
     """
-    response = requests.post(URL)
+    response = requests.put(URL)
     assert response.status_code == 401, "Invalid status code for no auth header check"
     assert not response.json()['success'], "Invalid response for no auth header"
     """
     Bearer authorization header check.
     """
-    response = requests.post(URL, headers={'Authorization': 'Basic abcdef'})
+    response = requests.put(URL, headers={'Authorization': 'Basic abcdef'})
     assert response.status_code == 400, "Invalid status code for bearer auth header check"
     assert not response.json()['success'], "Invalid response for bearer auth header check"
     """
     Invalid bearer token check.
     """
-    response = requests.post(URL, headers={'Authorization': 'Bearer abcdef'})
+    response = requests.put(URL, headers={'Authorization': 'Bearer abcdef'})
     assert response.status_code == 401, "Invalid status code for invalid bearer token check"
     """
     User not present check.
@@ -129,7 +129,7 @@ def test_app_register_auth_header():
         'first_name': FIRST_NAME,
         'last_name': LAST_NAME
     }, expiry=1)
-    response = requests.post(URL, headers={'Authorization': 'Bearer ' + temp_token})
+    response = requests.put(URL, headers={'Authorization': 'Bearer ' + temp_token})
     assert response.status_code == 401, "Invalid status code for user not present check"
     assert response.json()['msg'] == "user not found", "Invalid response message for user not present check"
     """
@@ -137,55 +137,51 @@ def test_app_register_auth_header():
     """
     headers, claims, err = verify_jwt(get_token())
     claims['email'] = "test@example.com"
-    response = requests.post(URL, headers={'Authorization': 'Bearer ' + generate_jwt(payload=claims, expiry=1)})
+    response = requests.put(URL, headers={'Authorization': 'Bearer ' + generate_jwt(payload=claims, expiry=1)})
     assert response.status_code == 401, "Invalid status code for invalid email check"
     assert response.json()['msg'] == "invalid email", "Invalid response message for invalid email check"
 
 
 @pytest.mark.run(order=6)
-@pytest.mark.app_register
-def test_app_register_content_type():
+@pytest.mark.app_key
+def test_app_key_content_type():
     """
     Invalid Content-Type check.
     """
     HEADERS = {'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': 'Bearer ' + get_token()}
-    response = requests.post(URL, headers=HEADERS)
-    assert response.status_code == 400, "Invalid status code for application/json content-type"
-    assert not response.json()['success'], "Invalid response for application/json content-type"
+    response = requests.put(URL, headers=HEADERS)
+    assert response.status_code == 400, "Invalid status code for application/json content-type - PUT request"
+    assert not response.json()['success'], "Invalid response for application/json content-type - PUT request"
+    response = requests.delete(URL, headers=HEADERS)
+    assert response.status_code == 400, "Invalid status code for application/json content-type - DELETE request"
+    assert not response.json()['success'], "Invalid response for application/json content-type - DELETE request"
 
 
-@pytest.mark.run(order=7)
-@pytest.mark.app_register
-def test_app_parameters():
+@pytest.mark.run(order=10)
+@pytest.mark.app_key
+def test_app_key_parameters():
     """
-    No app name check.
+    No API id provided check.
     """
     HEADERS = {'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': 'Bearer ' + get_token()}
-    response = requests.post(URL, headers=HEADERS)
-    assert response.status_code == 400, "Invalid status code for no app name provided"
-    """
-    No api id check.
-    """
-    response = requests.post(URL, headers=HEADERS, data={'name': APP_NAME})
-    assert response.status_code == 400, "Invalid status code for no app id provided"
-    """
-    Invalid grant type check.
-    """
-    response = requests.post(URL, headers=HEADERS, data={'name': APP_NAME, 'api': APP_API, 'grant_types': 'abcdef_grant_type'})
-    assert not response.json()['success'], "Invalid response message for invalid grant type check"
+    response = requests.put(URL, headers=HEADERS)
+    assert response.status_code == 400, "Invalid status code for no api id provided - PUT request"
+    response = requests.delete(URL, headers=HEADERS)
+    assert response.status_code == 400, "Invalid status code for no api id provided - DELETE request"
 
 
-@pytest.mark.run(order=8)
-@pytest.mark.app_register
-def test_app_register_register():
+@pytest.mark.run(order=11)
+@pytest.mark.app_key
+def test_app_key_add_key():
     """
-    App successful register check.
+    Generate new key secret pair.
     """
+    global CLIENT_ID, CLIENT_SECRET
     HEADERS = {'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': 'Bearer ' + get_token()}
-    response = requests.post(URL, headers=HEADERS, data={'name': APP_NAME, 'api': APP_API, 'grant_types': APP_GRANT_TYPE, 'redirect_uris': APP_REDIRECT_URIS})
-    assert response.status_code == 200, "Error in registering app"
+    response = requests.put(URL, headers=HEADERS, data={'api': APP_API})
+    assert response.status_code == 200, "Error in generating new key secret pair"
     """
-    Response Authorization header check.
+        Response Authorization header check.
     """
     assert response.headers.get("Authorization") is not None, "No authorization header present in response"
     """
@@ -197,17 +193,17 @@ def test_app_register_register():
     """
     decoded = b64decode(response.headers.get("Authorization").split(" ")[1])
     assert ":" in decoded, "Invalid client_id:client_secret basic authentication header"
+    CLIENT_ID = decoded.split(":")[0]
+    CLIENT_SECRET = decoded.split(":")[1]
 
 
-@pytest.mark.run(order=9)
-@pytest.mark.app_register
-def test_app_register_existing():
+@pytest.mark.run(order=12)
+@pytest.mark.app_key
+def test_app_key_delete_key():
     """
-    Existing app id check.
+    Delete a key
     """
+    global CLIENT_ID
     HEADERS = {'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': 'Bearer ' + get_token()}
-    response = requests.post(URL, headers=HEADERS, data={'name': APP_NAME, 'api': APP_API, 'grant_types': APP_GRANT_TYPE, 'redirect_uris': APP_REDIRECT_URIS})
-    assert response.status_code == 200, "Error in registering app"
-    assert not response.json()['success'], "Error in registering app"
-    assert response.json()['msg'] == "existing api id", "Error in registering app"
-
+    response = requests.delete(URL, headers=HEADERS, data={'api': APP_API, 'key': CLIENT_ID})
+    assert response.status_code == 200, "Error while deleting client id"
