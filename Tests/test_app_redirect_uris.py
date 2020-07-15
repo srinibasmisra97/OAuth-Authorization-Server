@@ -66,15 +66,15 @@ cfg = configparser.RawConfigParser()
 cfg.read(CONFIG_FILEPATH)
 
 AUTH_TOKEN_ENDPOINT = str(cfg.get(CONFIG_ENV, "URL")) + "/signin"
-URL = str(cfg.get(CONFIG_ENV, "URL")) + "/key"
+URL = str(cfg.get(CONFIG_ENV, "URL")) + "/uris"
 EMAIL = str(cfg.get(CONFIG_ENV, "EMAIL"))
 PASSWORD = str(cfg.get(CONFIG_ENV, "PASSWORD"))
 FIRST_NAME = str(cfg.get(CONFIG_ENV, "FIRST_NAME"))
 LAST_NAME = str(cfg.get(CONFIG_ENV, "LAST_NAME"))
 APP_NAME = str(cfg.get(CONFIG_ENV, "APP_NAME"))
 APP_API = str(cfg.get(CONFIG_ENV, "APP_API"))
-APP_GRANT_TYPE = str(cfg.get(CONFIG_ENV, "APP_GRANT_TYPES"))
-APP_REDIRECT_URIS = str(cfg.get(CONFIG_ENV, "APP_REDIRECT_URIS"))
+APP_GRANT_TYPE = [uri.strip() for uri in str(cfg.get(CONFIG_ENV, "APP_GRANT_TYPES")).split(",")]
+APP_REDIRECT_URIS = [gty.strip() for gty in str(cfg.get(CONFIG_ENV, "APP_REDIRECT_URIS")).split(",")]
 CLIENT_ID = None
 CLIENT_SECRET = None
 
@@ -88,8 +88,8 @@ def get_token():
     return response.headers.get("Authorization").split(" ")[1]
 
 
-@pytest.mark.app_key
-def test_app_key_request_method():
+@pytest.mark.app_uris
+def test_app_uris_request_method():
     """
     Check for valid request method only.
     """
@@ -99,8 +99,8 @@ def test_app_key_request_method():
     assert response.status_code == 405, "Invalid status code for POST request"
 
 
-@pytest.mark.app_key
-def test_app_key_auth_header():
+@pytest.mark.app_uris
+def test_app_uris_auth_header():
     """
     No authorization header.
     """
@@ -143,67 +143,39 @@ def test_app_key_auth_header():
 
 
 @pytest.mark.run(order=6)
-@pytest.mark.app_key
-def test_app_key_content_type():
+@pytest.mark.app_uris
+def test_app_uris_content_type():
     """
     Invalid Content-Type check.
     """
     HEADERS = {'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': 'Bearer ' + get_token()}
     response = requests.put(URL, headers=HEADERS)
-    assert response.status_code == 400, "Invalid status code for application/json content-type - PUT request"
-    assert not response.json()['success'], "Invalid response for application/json content-type - PUT request"
-    response = requests.delete(URL, headers=HEADERS)
-    assert response.status_code == 400, "Invalid status code for application/json content-type - DELETE request"
-    assert not response.json()['success'], "Invalid response for application/json content-type - DELETE request"
+    assert response.status_code == 400, "Invalid status code for application/x-www-form-urlencoded content-type"
+    assert not response.json()['success'], "Invalid response for application/x-www-form-urlencoded content-type"
 
 
-@pytest.mark.run(order=10)
-@pytest.mark.app_key
-def test_app_key_parameters():
+@pytest.mark.run(order=13)
+@pytest.mark.app_uris
+def test_app_uris_parameters():
     """
-    No API id provided check.
+    No API id provided.
     """
-    HEADERS = {'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': 'Bearer ' + get_token()}
-    response = requests.put(URL, headers=HEADERS)
-    assert response.status_code == 400, "Invalid status code for no api id provided - PUT request"
-    response = requests.delete(URL, headers=HEADERS)
-    assert response.status_code == 400, "Invalid status code for no api id provided - DELETE request"
+    HEADERS = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + get_token()}
+    response = requests.put(URL, headers=HEADERS, json={})
+    assert response.status_code == 400, "Invalid status code for no app id provided"
+    """
+    No uris provided.
+    """
+    response = requests.put(URL, headers=HEADERS, json={'api': APP_API})
+    assert response.status_code == 400, "Invalid status code for no uris provided"
 
 
-@pytest.mark.run(order=11)
-@pytest.mark.app_key
-def test_app_key_add_key():
+@pytest.mark.run(order=14)
+@pytest.mark.app_uris
+def test_app_uris_update():
     """
-    Generate new key secret pair.
+    Update redirect uris.
     """
-    global CLIENT_ID, CLIENT_SECRET
-    HEADERS = {'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': 'Bearer ' + get_token()}
-    response = requests.put(URL, headers=HEADERS, data={'api': APP_API})
-    assert response.status_code == 200, "Error in generating new key secret pair"
-    """
-        Response Authorization header check.
-    """
-    assert response.headers.get("Authorization") is not None, "No authorization header present in response"
-    """
-    Response Basic Authorization header check.
-    """
-    assert response.headers.get("Authorization").split(" ")[0] == "Basic", "Invalid authorization header in response"
-    """
-    Client ID, Client Secret check.
-    """
-    decoded = b64decode(response.headers.get("Authorization").split(" ")[1])
-    assert ":" in decoded, "Invalid client_id:client_secret basic authentication header"
-    CLIENT_ID = decoded.split(":")[0]
-    CLIENT_SECRET = decoded.split(":")[1]
-
-
-@pytest.mark.run(order=12)
-@pytest.mark.app_key
-def test_app_key_delete_key():
-    """
-    Delete a key
-    """
-    global CLIENT_ID
-    HEADERS = {'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': 'Bearer ' + get_token()}
-    response = requests.delete(URL, headers=HEADERS, data={'api': APP_API, 'key': CLIENT_ID})
-    assert response.status_code == 200, "Error while deleting client id"
+    HEADERS = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + get_token()}
+    response = requests.put(URL, headers=HEADERS, json={'api': APP_API, 'uris': APP_REDIRECT_URIS})
+    assert response.status_code == 200, "Error while updating redirect_uris"
