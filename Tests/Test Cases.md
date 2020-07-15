@@ -71,7 +71,6 @@
     * User email verification.
 * Content-Type check.
 * Parameters check:
-    * App name not provided check.
     * App API ID not provided check.
     * Grant types check.
 * Generate new key pair.
@@ -80,3 +79,39 @@
     * Basic Authorization header check.
     * Base64 client_id:client_secret message check.
 * Delete key.
+
+### Update Allowed Redirect URIs
+#### http://localhost:5000/uris
+
+* Valid request method check.
+* Authorization header checks:
+    * No authorization header.
+    * Invalid authorization header checks:
+        * Bearer token check.
+        * Invalid token check.
+    * User present check.
+    * User email verification.
+* Content-Type check.
+* Parameters check:
+    * App API ID not provided check.
+    * URIs not provided check.
+* App not found check.
+* Successful update check.
+
+### Update Allowed Grant Types
+#### http://localhost:5000/gtypes
+
+* Valid request method check.
+* Authorization header checks:
+    * No authorization header.
+    * Invalid authorization header checks:
+        * Bearer token check.
+        * Invalid token check.
+    * User present check.
+    * User email verification.
+* Content-Type check.
+* Parameters check:
+    * App API ID not provided check.
+    * Grant Types not provided check.
+* App not found check.
+* Successful update check.
