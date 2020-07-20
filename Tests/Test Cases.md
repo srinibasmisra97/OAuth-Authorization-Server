@@ -148,4 +148,46 @@
         * Permission filter not provided.
         * Name not provided.
         * Value not provided.
-* Successful operation.
+* Successful operation:
+    * Add
+    * Get
+    * Delete
+    * Update
+
+### RBAC Roles
+#### http://localhost:5000/api/rbac/roles
+
+* Valid request method.
+* Authorization header s:
+    * No authorization header.
+    * Invalid authorization header s:
+        * Bearer token.
+        * Invalid token.
+    * User present.
+    * User email verification.
+* Content-Type.
+* Parameters:
+    * GET Request:
+        * App API ID not provided.
+        * App not found.
+    * POST Request:
+        * App API ID not provided.
+        * App not found.
+        * Permissions not provided.
+        * Name not present.
+        * ID not present.
+        * Permissions not present.
+    * DELETE Request:
+        * App API ID not provided.
+        * App not found.
+        * Role ID not provided.
+    * PUT Request:
+        * App API ID not provided.
+        * App not found.
+        * Role ID not provided.
+        * Role not found.
+* Successful operation:
+    * Add
+    * Get
+    * Delete
+    * Update
