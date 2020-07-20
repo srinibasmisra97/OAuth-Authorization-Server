@@ -396,7 +396,7 @@ def roles():
         })
     elif request.method == 'PUT':
         if request.headers.get("Content-Type") != "application/json":
-            return jsonify({'success': False, 'msg': 'invalid content type'})
+            return jsonify({'success': False, 'msg': 'invalid content type'}), 400
 
         request_data = request.get_json()
 
@@ -413,6 +413,9 @@ def roles():
 
         if not result:
             return jsonify({'success': False, 'msg': 'app not found'})
+
+        if not role_id:
+            return jsonify({'success': False, 'msg': 'role id not provided'}), 400
 
         role = Role(id=role_id)
         result = role.get(client=client, application=app)

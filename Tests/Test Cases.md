@@ -181,6 +181,7 @@
         * App API ID not provided.
         * App not found.
         * Role ID not provided.
+        * Role not found.
     * PUT Request:
         * App API ID not provided.
         * App not found.

@@ -66,7 +66,7 @@ cfg = configparser.RawConfigParser()
 cfg.read(CONFIG_FILEPATH)
 
 AUTH_TOKEN_ENDPOINT = str(cfg.get(CONFIG_ENV, "URL")) + "/signin"
-URL = str(cfg.get(CONFIG_ENV, "URL")) + "/api/rbac/permissions"
+URL = str(cfg.get(CONFIG_ENV, "URL")) + "/api/rbac/roles"
 EMAIL = str(cfg.get(CONFIG_ENV, "EMAIL"))
 PASSWORD = str(cfg.get(CONFIG_ENV, "PASSWORD"))
 FIRST_NAME = str(cfg.get(CONFIG_ENV, "FIRST_NAME"))
@@ -83,8 +83,7 @@ RBAC_USER_NAME = str(cfg.get(CONFIG_ENV, "RBAC_USER_NAME"))
 RBAC_USER_EMAIL = str(cfg.get(CONFIG_ENV, "RBAC_USER_EMAIL"))
 RBAC_USER_PWD = str(cfg.get(CONFIG_ENV, "RBAC_USER_PWD"))
 
-
-if len(RBAC_PERMISSION_VALUES)==0 or len(RBAC_PERMISSION_NAMES)==0:
+if len(RBAC_PERMISSION_VALUES) == 0 or len(RBAC_PERMISSION_NAMES) == 0:
     print("PLEASE ADD PERMISSIONS TO CONFIG")
     exit(0)
 
@@ -98,8 +97,8 @@ def get_token():
     return response.headers.get("Authorization").split(" ")[1]
 
 
-@pytest.mark.rbac_permissions
-def test_rbac_permissions_auth_header():
+@pytest.mark.rbac_roles
+def test_rbac_roles_auth_header():
     """
     No authorization header.
     """
@@ -141,8 +140,8 @@ def test_rbac_permissions_auth_header():
 
 
 @pytest.mark.run(order=6)
-@pytest.mark.rbac_permissions
-def test_rbac_permissions_content_type():
+@pytest.mark.rbac_roles
+def test_rbac_roles_content_type():
     """
     application/x-www-form-urlencoded check for GET
     """
@@ -167,125 +166,120 @@ def test_rbac_permissions_content_type():
     """
         application/x-www-form-urlencoded check for PUT
     """
-    HEADERS = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + get_token()}
+    HEADERS = {'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': 'Bearer ' + get_token()}
     response = requests.put(URL, headers=HEADERS)
-    assert response.status_code == 400, "Invalid status code for application/json content-type - PUT request"
-    assert not response.json()['success'], "Invalid response for application/json content-type - PUT request"
+    assert response.status_code == 400, "Invalid status code for application/x-www-form-urlencoded content-type - PUT request"
+    assert not response.json()['success'], "Invalid response for application/x-www-form-urlencoded content-type - PUT request"
 
 
 @pytest.mark.run(order=15)
-@pytest.mark.rbac_permissions
-def test_rbac_permissions_parameters():
-    """ GET Request check """
+@pytest.mark.rbac_roles
+def test_rbac_roles_parameters():
+    """ GET request check """
     headers = {'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': 'Bearer ' + get_token()}
-    response = requests.get(URL, headers=headers, data={})
-    assert response.status_code == 400, "Invalid status code for api id not provided - GET request"
-    response = requests.get(URL, headers=headers, data={'api': secrets.token_hex(8)})
-    assert response.status_code == 200, "Error while getting permissions"
-    assert not response.json()['success'], "Invalid response for no app found check - GET request"
-    """ POST request check """
+    response = requests.get(url=URL, headers=headers)
+    assert response.status_code == 400, "Invalid status code for api id not present - GET request"
+    response = requests.get(url=URL, headers=headers, data={'api': secrets.token_hex(8)})
+    assert not response.json()['success'], "Invalid response message for app not found - GET request"
+    """ POST request """
     headers['Content-Type'] = 'application/json'
-    response = requests.post(URL, headers=headers, json={})
-    assert response.status_code == 400, "invalid status code for api id not provided - POST request"
-    response = requests.post(URL, headers=headers, json={'api': secrets.token_hex(8)})
-    assert not response.json()['success'], "Invalid response for app not found - POST request"
-    response = requests.post(URL, headers=headers, json={'api': APP_API})
-    assert response.status_code == 400, "Invalid status code for permissions not provided - POST request"
-    assert not response.json()['success'], "Invalid response for permissions not provided - POST request"
-    response = requests.post(URL, headers=headers, json={'api': APP_API, 'permissions': [{}]})
-    assert response.status_code == 400, "Invalid status code for name not provided - POST request"
-    response = requests.post(URL, headers=headers, json={'api': APP_API, 'permissions': [{'name': secrets.token_hex(8)}]})
-    assert response.status_code == 400, "Invalid status code for value not provided - POST request"
-    """ DELETE request check """
+    response = requests.post(url=URL, headers=headers, json={})
+    assert response.status_code == 400, "Invalid status code for api id not present - POST request"
+    response = requests.post(url=URL, headers=headers, json={'api': secrets.token_hex(8)})
+    assert not response.json()['success'], "Invalid response message for app not found - POST request"
+    response = requests.post(url=URL, headers=headers, json={'api': APP_API})
+    assert response.status_code == 400, "Invalid status code for roles not provided - POST request"
+    response = requests.post(url=URL, headers=headers, json={'api': APP_API, 'roles': [{}]})
+    assert response.status_code == 400, "Invalid status code for role name not provided - POST request"
+    response = requests.post(url=URL, headers=headers, json={'api': APP_API, 'roles': [{'name': secrets.token_hex(8)}]})
+    assert response.status_code == 400, "Invalid status code for role id not provided - POST request"
+    response = requests.post(url=URL, headers=headers, json={'api': APP_API, 'roles': [{'name': secrets.token_hex(8), 'id': secrets.token_hex(8)}]})
+    assert response.status_code == 400, "Invalid status code for role permissions not provided - POST request"
+    response = requests.post(url=URL, headers=headers, json={'api': APP_API, 'roles': [{'name': secrets.token_hex(8), 'id': secrets.token_hex(8), 'permissions': [secrets.token_hex(8)]}]})
+    assert response.status_code == 400, "Invalid status code for role permission not defined - POST request"
+    """ DELETE request """
     headers['Content-Type'] = 'application/x-www-form-urlencoded'
-    response = requests.delete(URL, headers=headers)
+    response = requests.delete(url=URL, headers=headers)
     assert response.status_code == 400, "Invalid status code for api id not provided - DELETE request"
-    response = requests.delete(URL, headers=headers, data={'api': secrets.token_hex(8)})
+    response = requests.delete(url=URL, headers=headers, data={'api': secrets.token_hex(8)})
     assert not response.json()['success'], "Invalid response message for app not found - DELETE request"
-    response = requests.delete(URL, headers=headers, data={'api': APP_API})
-    assert not response.json()['success'], "Invalid response message for value not provided - DELETE request"
-    """ PUT request check """
-    headers['Content-Type'] = 'application/x-www-form-urlencoded'
-    response = requests.put(URL, headers=headers)
-    assert response.status_code == 400, "Invalid status code for api id not provided - PUT request"
-    response = requests.put(URL, headers=headers, data={'api': secrets.token_hex(8)})
+    response = requests.delete(url=URL, headers=headers, data={'api': APP_API})
+    assert response.status_code == 400, "Invalid status code for role id not provided - DELETE request"
+    response = requests.delete(url=URL, headers=headers, data={'api': APP_API, 'role': secrets.token_hex(8)})
+    assert not response.json()['success'], "Invalid response message for role not found"
+    """ PUT request """
+    headers['Content-Type'] = 'application/json'
+    response = requests.put(url=URL, headers=headers, json={})
+    assert response.status_code == 400, "Invalid status code for api id not present - PUT request"
+    response = requests.put(url=URL, headers=headers, json={'api': secrets.token_hex(8)})
     assert not response.json()['success'], "Invalid response message for app not found - PUT request"
-    response = requests.put(URL, headers=headers, data={'api': APP_API})
-    assert response.status_code == 400, "Invalid status code for permission filter not provided - PUT request"
-    response = requests.put(URL, headers=headers, data={'api': APP_API}, params={'p': RBAC_PERMISSION_VALUES[0]})
-    assert response.status_code == 400, "Invalid status code for name or value not provided - PUT request"
+    response = requests.put(url=URL, headers=headers, json={'api': APP_API})
+    assert response.status_code == 400, "Invalid status code for role id not provided - PUT request"
+    response = requests.put(url=URL, headers=headers, json={'api': APP_API, 'role': secrets.token_hex(8)})
+    assert not response.json()['success'], "Invalid response message for role not found"
 
 
-@pytest.mark.run(order=16)
-@pytest.mark.rbac_permissions
-def test_rbac_permissions_add():
+@pytest.mark.run(order=21)
+@pytest.mark.rbac_roles
+def test_rbac_roles_add():
     """
-    Test case to add permissions
-    """
-    headers = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + get_token()}
-    permissions = []
-    for i in range(len(RBAC_PERMISSION_NAMES)):
-        permissions.append({'name': RBAC_PERMISSION_NAMES[i], 'value': RBAC_PERMISSION_VALUES[i]})
-    response = requests.post(url=URL, headers=headers, json={'api': APP_API, 'permissions': permissions})
-    assert response.status_code == 200, "Error while adding permissions"
-
-
-@pytest.mark.run(order=17)
-@pytest.mark.rbac_permissions
-def test_rbac_permissions_add_existing():
-    """
-    Test case to add existing permissions
+    Test case to add roles
     """
     headers = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + get_token()}
-    response = requests.post(url=URL, headers=headers, json={'api': APP_API, 'permissions': [{'name': RBAC_PERMISSION_NAMES[0], 'value': RBAC_PERMISSION_VALUES[0]}]})
-    assert not response.json()['success'], "Invalid response message for adding existing permission"
+    response = requests.post(url=URL, headers=headers, json={'api': APP_API, 'roles': [{'name': RBAC_ROLE_NAME, 'id': RBAC_ROLE_ID, 'permissions': RBAC_PERMISSION_VALUES}]})
+    assert response.status_code == 200, "Error while adding roles"
 
 
-@pytest.mark.run(order=18)
-@pytest.mark.rbac_permissions
-def test_rbac_permissions_get():
+@pytest.mark.run(order=22)
+@pytest.mark.rbac_roles
+def test_rbac_roles_add_existing():
     """
-    Test case to get permissions
+    Test case to add existing role
+    """
+    headers = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + get_token()}
+    response = requests.post(url=URL, headers=headers, json={'api': APP_API, 'roles': {'name': RBAC_ROLE_NAME, 'id': RBAC_ROLE_ID, 'permissions': RBAC_PERMISSION_VALUES}})
+    assert not response.json()['success'], "Invalid response message for adding existing role"
+
+
+@pytest.mark.run(order=23)
+@pytest.mark.rbac_roles
+def test_rbac_roles_get():
+    """
+    Test case to get roles
     """
     headers = {'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': 'Bearer ' + get_token()}
     response = requests.get(url=URL, headers=headers, data={'api': APP_API})
-    assert response.status_code == 200, "Error while getting permissions"
-    permissions = []
-    for i in range(len(RBAC_PERMISSION_NAMES)):
-        permissions.append({'name': RBAC_PERMISSION_NAMES[i], 'value': RBAC_PERMISSION_VALUES[i]})
+    assert response.status_code == 200, "Error while getting role"
     same = True
-    for perm1 in response.json()['permissions']:
-        found = False
-        for perm2 in permissions:
-            if perm1['name'] == perm2['name'] and perm1['value'] == perm2['value']:
-                found = True
+    for role in response.json()['roles']:
+        for perm in RBAC_PERMISSION_VALUES:
+            if perm not in role['permissions']:
+                same = False
                 break
-        same = found
-    assert same, "Permissions not correct"
+        if role['name'] != RBAC_ROLE_NAME or role['id'] != RBAC_ROLE_ID:
+            same = False
+    assert same, "Roles not correct"
 
 
-@pytest.mark.run(order=19)
-@pytest.mark.rbac_permissions
-def test_rbac_permissions_delete():
+@pytest.mark.run(order=24)
+@pytest.mark.rbac_roles
+def test_rbac_roles_delete():
     """
     Test case to delete permission
     """
     headers = {'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': 'Bearer ' + get_token()}
-    permissions = []
-    for i in range(len(RBAC_PERMISSION_NAMES)):
-        permissions.append({'name': RBAC_PERMISSION_NAMES[i], 'value': RBAC_PERMISSION_VALUES[i]})
-        response = requests.delete(url=URL, headers=headers, data={'api': APP_API, 'value': RBAC_PERMISSION_VALUES[i]})
-        assert response.status_code == 200, "Error while deleting permission"
+    response = requests.delete(url=URL, headers=headers, data={'api': APP_API, 'role': RBAC_ROLE_ID})
+    assert response.status_code == 200, "Error while deleting role"
     headers['Content-Type'] = 'application/json'
-    response = requests.post(url=URL, headers=headers, json={'api': APP_API, 'permissions': permissions})
+    response = requests.post(url=URL, headers=headers, json={'api': APP_API, 'roles': [{'name': RBAC_ROLE_NAME, 'id': RBAC_ROLE_ID, 'permissions': RBAC_PERMISSION_VALUES}]})
 
 
-@pytest.mark.run(order=20)
-@pytest.mark.rbac_permissions
-def test_rbac_permissions_update():
+@pytest.mark.run(order=25)
+@pytest.mark.rbac_roles
+def test_rbac_roles_update():
     """
     Test case to update a permission
     """
-    headers = {'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': 'Bearer ' + get_token()}
-    response = requests.put(url=URL, headers=headers, data={'api': APP_API, 'name': RBAC_PERMISSION_NAMES[0]}, params={'p': RBAC_PERMISSION_VALUES[0]})
-    assert response.status_code == 200, "Error while updating permission"
+    headers = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + get_token()}
+    response = requests.put(url=URL, headers=headers, json={'api': APP_API, 'role': RBAC_ROLE_ID, 'permissions': RBAC_PERMISSION_VALUES})
+    assert response.status_code == 200, "Error while updating role"
