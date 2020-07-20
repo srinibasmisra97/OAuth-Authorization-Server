@@ -279,14 +279,6 @@ def roles():
                 'msg': 'api id not provided'
             }), 400
 
-        api_id = request.form.get("api")
-
-        if api_id is None:
-            return jsonify({
-                'success': False,
-                'msg': 'no api id provided'
-            }), 400
-
         app = Application(api=api_id)
         result = app.get_by_api_id(api_id=api_id)
 
@@ -484,14 +476,6 @@ def users():
             return jsonify({
                 'success': False,
                 'msg': 'api id not provided'
-            }), 400
-
-        api_id = request.form.get("api")
-
-        if api_id is None:
-            return jsonify({
-                'success': False,
-                'msg': 'no api id provided'
             }), 400
 
         app = Application(api=api_id)
