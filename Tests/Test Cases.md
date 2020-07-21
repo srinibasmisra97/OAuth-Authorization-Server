@@ -192,3 +192,42 @@
     * Get
     * Delete
     * Update
+    
+### RBAC Users
+#### http://localhost:5000/api/rbac/users
+
+* Valid request method.
+* Authorization header s:
+    * No authorization header.
+    * Invalid authorization header s:
+        * Bearer token.
+        * Invalid token.
+    * User present.
+    * User email verification.
+* Content-Type.
+* Parameters:
+    * GET Request:
+        * App API ID not provided.
+        * App not found.
+    * POST Request:
+        * App API ID not provided.
+        * App not found.
+        * Email not provided.
+        * Password not present.
+        * Name not present.
+        * Role ID not present.
+    * DELETE Request:
+        * App API ID not provided.
+        * App not found.
+        * Email not provided.
+        * Email not found.
+    * PUT Request:
+        * App API ID not provided.
+        * App not found.
+        * Role ID not provided.
+        * Role not found.
+* Successful operation:
+    * Add
+    * Get
+    * Delete
+    * Update
