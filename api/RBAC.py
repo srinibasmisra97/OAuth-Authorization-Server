@@ -47,7 +47,7 @@ def before_request():
         return jsonify({'success': False, 'msg': 'invalid authorization'}), 400
 
 
-@app_RBAC.route('/api/rbac/permissions', methods=['GET','PUT','POST','DELETE'])
+@app_RBAC.route('/api/rbac/permissions', methods=['GET', 'PUT', 'POST', 'DELETE'])
 def permissions():
     """
     API for handling permissions related tasks.
@@ -482,7 +482,7 @@ def users():
             }), 400
 
         app = Application(api=api_id)
-        result = app.get_by_api_id(api_id=api_id, projection={"password":0, "users.password": 0})
+        result = app.get_by_api_id(api_id=api_id, projection={"password": 0, "users.password": 0})
 
         if not result:
             return jsonify({
@@ -492,7 +492,7 @@ def users():
 
         return jsonify({
             'success': True,
-            'roles': app.users
+            'users': app.users
         })
     elif request.method == 'POST':
         if request.headers.get("Content-Type") != "application/x-www-form-urlencoded":
@@ -524,7 +524,7 @@ def users():
         user_role = request.form.get("role")
 
         if user_email is None:
-            return jsonify({'success': False, 'msg': 'no email provided'}),400
+            return jsonify({'success': False, 'msg': 'no email provided'}), 400
         if user_password is None:
             return jsonify({'success': False, 'msg': 'no password provided'}), 400
         if user_name is None:
