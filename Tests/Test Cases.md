@@ -224,8 +224,8 @@
     * PUT Request:
         * App API ID not provided.
         * App not found.
-        * Role ID not provided.
-        * Role not found.
+        * Email not provided.
+        * Email not found.
 * Successful operation:
     * Add
     * Get
