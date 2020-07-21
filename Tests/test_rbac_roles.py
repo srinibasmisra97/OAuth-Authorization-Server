@@ -152,21 +152,21 @@ def test_rbac_roles_content_type():
     """
         application/json check for POST
     """
-    HEADERS = {'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': 'Bearer ' + get_token()}
+    HEADERS['Content-Type'] = 'application/x-www-form-urlencoded'
     response = requests.post(URL, headers=HEADERS)
     assert response.status_code == 400, "Invalid status code for application/x-www-form-urlencoded content-type - POST request"
     assert not response.json()['success'], "Invalid response for application/x-www-form-urlencoded content-type - POST request"
     """
         application/x-www-form-urlencoded check for DELETE
     """
-    HEADERS = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + get_token()}
+    HEADERS['Content-Type'] = 'application/json'
     response = requests.delete(URL, headers=HEADERS)
     assert response.status_code == 400, "Invalid status code for application/json content-type - DELETE request"
     assert not response.json()['success'], "Invalid response for application/json content-type - DELETE request"
     """
-        application/x-www-form-urlencoded check for PUT
+        application/json check for PUT
     """
-    HEADERS = {'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': 'Bearer ' + get_token()}
+    HEADERS['Content-Type'] = 'application/x-www-form-urlencoded'
     response = requests.put(URL, headers=HEADERS)
     assert response.status_code == 400, "Invalid status code for application/x-www-form-urlencoded content-type - PUT request"
     assert not response.json()['success'], "Invalid response for application/x-www-form-urlencoded content-type - PUT request"
@@ -265,7 +265,7 @@ def test_rbac_roles_get():
 @pytest.mark.rbac_roles
 def test_rbac_roles_delete():
     """
-    Test case to delete permission
+    Test case to delete role
     """
     headers = {'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': 'Bearer ' + get_token()}
     response = requests.delete(url=URL, headers=headers, data={'api': APP_API, 'role': RBAC_ROLE_ID})
@@ -278,7 +278,7 @@ def test_rbac_roles_delete():
 @pytest.mark.rbac_roles
 def test_rbac_roles_update():
     """
-    Test case to update a permission
+    Test case to update a role
     """
     headers = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + get_token()}
     response = requests.put(url=URL, headers=headers, json={'api': APP_API, 'role': RBAC_ROLE_ID, 'permissions': RBAC_PERMISSION_VALUES})

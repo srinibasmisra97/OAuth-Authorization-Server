@@ -153,21 +153,21 @@ def test_rbac_permissions_content_type():
     """
         application/json check for POST
     """
-    HEADERS = {'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': 'Bearer ' + get_token()}
+    HEADERS['Content-Type'] = 'application/x-www-form-urlencoded'
     response = requests.post(URL, headers=HEADERS)
     assert response.status_code == 400, "Invalid status code for application/x-www-form-urlencoded content-type - POST request"
     assert not response.json()['success'], "Invalid response for application/x-www-form-urlencoded content-type - POST request"
     """
         application/x-www-form-urlencoded check for DELETE
     """
-    HEADERS = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + get_token()}
+    HEADERS['Content-Type'] = 'application/json'
     response = requests.delete(URL, headers=HEADERS)
     assert response.status_code == 400, "Invalid status code for application/json content-type - DELETE request"
     assert not response.json()['success'], "Invalid response for application/json content-type - DELETE request"
     """
         application/x-www-form-urlencoded check for PUT
     """
-    HEADERS = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + get_token()}
+    HEADERS['application/json'] = 'application/json'
     response = requests.put(URL, headers=HEADERS)
     assert response.status_code == 400, "Invalid status code for application/json content-type - PUT request"
     assert not response.json()['success'], "Invalid response for application/json content-type - PUT request"
