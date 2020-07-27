@@ -2,7 +2,7 @@ version: "3.8"
 services:
   auth-server:
     container_name: auth-server
-    image: srinibasmisra/auth-server:v1.0
+    image: srinibasmisra/auth-server:v1.1
     ports:
       - "5000:5000"
 #    Uncomment the volume mounts to for a development environment for the code.
