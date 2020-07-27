@@ -1,0 +1,47 @@
+version: "3.8"
+services:
+  auth-server:
+    container_name: auth-server
+    image: srinibasmisra/auth-server:v1.0
+    ports:
+      - "5000:5000"
+#    Uncomment the volume mounts to for a development environment for the code.
+#    volumes:
+#    - ./:/src/
+    environment:
+      MONGO_HOST: mongodb
+      MONGO_PORT: 27017
+#     Add mongo username and password if authentication is enabled for mongodb.
+#      MONGO_USERNAME: writer
+#      MONGO_PASSWORD: writer@123
+      MONGO_DB: authDb
+      MEMCACHE_HOST: memcache
+      MEMCACHE_PORT: 11211
+    depends_on:
+      - mongodb
+      - memcache
+    networks:
+      - auth-network
+    stdin_open: false
+    tty: false
+  mongodb:
+    container_name: mongodb
+    image: mongo
+    ports:
+      - "27017:27017"
+    networks:
+      - auth-network
+    stdin_open: false
+    tty: false
+  memcache:
+    container_name: memcache
+    image: memcached
+    ports:
+      - "11211:11211"
+    networks:
+      - auth-network
+    stdin_open: false
+    tty: false
+networks:
+  auth-network:
+    driver: bridge
