@@ -59,9 +59,7 @@ class Clients(object):
         if existing:
             return False, "existing"
 
-        result, oid = Insert().insert_one(db_obj=db_obj,
-                            collection=COL_NAME,
-                            document={
+        result, oid = Insert().insert_one(db_obj=db_obj, collection=COL_NAME, document={
                                 'first_name': self.first_name,
                                 'last_name': self.last_name,
                                 'email': self.email,
