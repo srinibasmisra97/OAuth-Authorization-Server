@@ -65,7 +65,7 @@ def signup():
         return jsonify({
             'success': False,
             'msg': 'invalid email'
-        }), 400
+        })
 
     valid, msg = check_password_requirement(password=password)
     if not valid:
@@ -78,13 +78,13 @@ def signup():
         return jsonify({
             'success': False,
             'msg': 'invalid first name'
-        }), 400
+        })
 
     if not str(last_name).isalpha():
         return jsonify({
             'success': False,
             'msg': 'invalid last name'
-        }), 400
+        })
 
     client = Clients(first_name=str(first_name), last_name=str(last_name), email=str(email), password=hash_password(password=password))
     status, msg = client.signup()
