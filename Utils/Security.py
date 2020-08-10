@@ -94,6 +94,15 @@ def verify_jwt(token):
         return None, None, str(e)
 
 
+def decode_jwt(token):
+    """
+    This function decodes a JWT token.
+    :param token: String JWT Token
+    :return: header, claims
+    """
+    return jwt.process_jwt(token)[1]
+
+
 def validate_password(password, hash):
     """
     This function validates if the password hash is the same as the hash provided.

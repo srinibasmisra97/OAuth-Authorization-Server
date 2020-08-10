@@ -482,7 +482,7 @@ def users():
             }), 400
 
         app = Application(api=api_id)
-        result = app.get_by_api_id(api_id=api_id, projection={"password": 0, "users.password": 0})
+        result = app.get_by_api_id(api_id=api_id)
 
         if not result:
             return jsonify({
@@ -519,14 +519,11 @@ def users():
             })
 
         user_email = request.form.get("email")
-        user_password = request.form.get("password")
         user_name = request.form.get("name")
         user_role = request.form.get("role")
 
         if user_email is None:
             return jsonify({'success': False, 'msg': 'no email provided'}), 400
-        if user_password is None:
-            return jsonify({'success': False, 'msg': 'no password provided'}), 400
         if user_name is None:
             return jsonify({'success': False, 'msg': 'no name provided'}), 400
         if user_role is None:
@@ -543,10 +540,6 @@ def users():
         if found:
             return jsonify({'success': False, 'msg': 'existing user'})
 
-        result, msg = check_password_requirement(password=user_password)
-        if not result:
-            return jsonify({'success': False, 'msg': msg})
-
         if not str(user_name).isalpha():
             if " " not in str(user_name):
                 return jsonify({'success': False, 'msg': 'unknown character in name'})
@@ -559,7 +552,7 @@ def users():
         if not found:
             return jsonify({'success': False, 'msg': 'role not defined'})
 
-        user = User(email=user_email, password=hash_password(password=user_password), name=user_name, role=user_role)
+        user = User(email=user_email, name=user_name, role=user_role)
         result, msg = user.add(client=client, application=app)
 
         return jsonify({
@@ -618,7 +611,6 @@ def users():
         user_email = request.form.get("email")
         user_name = request.form.get("name")
         user_role = request.form.get("role")
-        password = request.form.get("password")
 
         if api_id is None:
             return jsonify({'success': False, 'msg': 'no app id provided'}), 400
@@ -636,7 +628,7 @@ def users():
         if not user.get_by_email(client=client, application=app):
             return jsonify({'success': False, 'msg': 'user not found'})
 
-        result_role = result_name = result_password = msg_role = msg_name = msg_password = None
+        result_role = result_name = msg_role = msg_name = None
         if user_role is not None:
             found = False
             for er in app.roles:
@@ -648,12 +640,8 @@ def users():
             result_role, msg_role = user.update_role(client=client, application=app, role=user_role)
         if user_name is not None:
             result_name, msg_name = user.update_name(client=client, application=app, name=user_name)
-        if password is not None:
-            if not check_password_requirement(password=password):
-                return jsonify({'success': False, 'msg': 'password does not meet requirements'})
-            result_password, msg_password = user.update_password(client=client, application=app, password=hash_password(password=password))
 
         return jsonify({
-            'success': bool(result_role or result_name or result_password),
-            'msg': 'updated' if (result_role or result_name or result_password) else 'failed'
+            'success': bool(result_role or result_name),
+            'msg': 'updated' if (result_role or result_name) else 'failed'
         })

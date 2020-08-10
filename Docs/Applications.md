@@ -28,14 +28,12 @@ Applications are the apps that clients can create/register which can serve as th
   "users": [
     {
       "email": "<Member Email>",
-      "password": "<Hashed Password>",
       "first_name": "<First Name>",
       "last_name": "<Last Name>",
       "role": "<Role Id>"
     },
     {
       "email": "<Member Email>",
-      "password": "<Hashed Password>",
       "first_name": "<First Name>",
       "last_name": "<Last Name>",
       "role": "<Role Id>"

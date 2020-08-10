@@ -19,7 +19,8 @@ def db_init():
         from main import MONGO_HOST, MONGO_PORT, MONGO_USERNAME, MONGO_PASSWORD, MONGO_DB
         from Utils.MongoHandler import ConnectDB
 
-        db_obj = ConnectDB(host=MONGO_HOST, port=MONGO_PORT, username=MONGO_USERNAME, password=MONGO_PASSWORD, db=MONGO_DB).getMongoDbObject()
+        db_obj = ConnectDB(host=MONGO_HOST, port=MONGO_PORT, username=MONGO_USERNAME, password=MONGO_PASSWORD,
+                           db=MONGO_DB).getMongoDbObject()
 
     return db_obj
 
@@ -245,7 +246,7 @@ class Permission(object):
         }
 
         data = {
-            "$set": { "permissions.$[permission].value": new_value}
+            "$set": {"permissions.$[permission].value": new_value}
         }
 
         array_filters = [{"permission.value": old_value}]
@@ -337,7 +338,7 @@ class Role(object):
 
         condition = {'api': application.api}
 
-        data = {"$push":{"roles":{"name":name, "id":role_id, "permissions":permissions}}}
+        data = {"$push": {"roles": {"name": name, "id": role_id, "permissions": permissions}}}
 
         result = Update().update_one_by_condition(db_obj=db_obj, collection=COL_NAME, condition=condition, data=data)
 
@@ -483,9 +484,9 @@ class Role(object):
             "roles.id": role_id
         }
 
-        data = {"$push":{"roles.$[role].permissions":{"$each":permissions}}}
+        data = {"$push": {"roles.$[role].permissions": {"$each": permissions}}}
 
-        array_filters = [{"role.id":role_id}]
+        array_filters = [{"role.id": role_id}]
 
         result = Update().update_one_by_condition(db_obj=db_obj,
                                                   collection=COL_NAME,
@@ -566,18 +567,16 @@ class Role(object):
 
 class User(object):
 
-    def __init__(self, id_="", email="", password="", name="", role=""):
+    def __init__(self, id_="", email="", name="", role=""):
         """
         Init function for creating a member object.
         :param id_: Unique id of the user.
         :param email: Email id.
-        :param password: Password hash.
         :param name: Name
         :param role: Role id.
         """
         self.id_ = id_
         self.email = email
-        self.password = password
         self.name = name
         self.role = role
 
@@ -604,8 +603,6 @@ class User(object):
             self.id_ = doc['id_']
         if "email" in doc:
             self.email = doc['email']
-        if "password" in doc:
-            self.password = doc['password']
         if "name" in doc:
             self.name = doc['name']
         if "role" in doc:
@@ -669,13 +666,12 @@ class User(object):
 
         return {}
 
-    def add(self, client, application, email="", password="", role="", name=""):
+    def add(self, client, application, email="", role="", name=""):
         """
         Adding a single user for an application.
         :param client: Client object.
         :param application: Application object.
         :param email: Email id.
-        :param password: Password hash.
         :param role: Role.
         :param name: Name
         :return: Update object.
@@ -687,8 +683,6 @@ class User(object):
 
         if email == "":
             email = self.email
-        if password == "":
-            password = self.password
         if role == "":
             role = self.role
         if name == "":
@@ -703,7 +697,6 @@ class User(object):
                 'users': {
                     'id_': self.id_,
                     'email': email,
-                    'password': password,
                     'name': name,
                     'role': role
                 }
@@ -735,7 +728,6 @@ class User(object):
                 user['id_'] = str(uuid.uuid1().hex)
                 if value['email'] == user['email']:
                     common.append(value)
-
 
         if len(common) != 0:
             return None, "existing"
@@ -808,7 +800,8 @@ class User(object):
 
         array_filters = [{'user.email': old_email}]
 
-        result = Update().update_one_by_condition(db_obj=db_obj, collection=COL_NAME, condition=condition, data=data, array_filters=array_filters)
+        result = Update().update_one_by_condition(db_obj=db_obj, collection=COL_NAME, condition=condition, data=data,
+                                                  array_filters=array_filters)
 
         return result, "update" if result else "failed"
 
@@ -835,34 +828,8 @@ class User(object):
 
         array_filters = [{'user.email': email}]
 
-        result = Update().update_one_by_condition(db_obj=db_obj, collection=COL_NAME, condition=condition, data=data, array_filters=array_filters)
-
-        return result, "update" if result else "failed"
-
-    def update_password(self, client, application, password, email=""):
-        """
-                Update name of user.
-                :param client: Client object.
-                :param application: Application object.
-                :param password: Password.
-                :param email: Email id.
-                :return: Update object.
-                """
-        db_obj = db_init()
-
-        if client.email != Clients().get_by_id(oid=application.owner)['email']:
-            return None, "not allowed"
-
-        if email == "":
-            email = self.email
-
-        condition = {'api': application.api, 'users.email': email}
-
-        data = {'$set': {'users.$[user].password': password}}
-
-        array_filters = [{'user.email': email}]
-
-        result = Update().update_one_by_condition(db_obj=db_obj, collection=COL_NAME, condition=condition, data=data, array_filters=array_filters)
+        result = Update().update_one_by_condition(db_obj=db_obj, collection=COL_NAME, condition=condition, data=data,
+                                                  array_filters=array_filters)
 
         return result, "update" if result else "failed"
 
@@ -899,6 +866,7 @@ class User(object):
 
         array_filters = [{'user.email': email}]
 
-        result = Update().update_one_by_condition(db_obj=db_obj, collection=COL_NAME, condition=condition, data=data, array_filters=array_filters)
+        result = Update().update_one_by_condition(db_obj=db_obj, collection=COL_NAME, condition=condition, data=data,
+                                                  array_filters=array_filters)
 
         return result, "update" if result else "failed"

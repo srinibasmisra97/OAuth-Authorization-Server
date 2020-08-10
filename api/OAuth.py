@@ -4,7 +4,7 @@ from urllib.parse import unquote
 from flask import request, jsonify, render_template, redirect
 from flask.blueprints import Blueprint
 
-from Utils.Security import b64decode, validate_password, generate_key, generate_jwt, check_scopes, pkce_verify
+from Utils.Security import decode_jwt, generate_key, generate_jwt, check_scopes, pkce_verify
 from Utils.Helpers import memcache_connection, list_to_string
 
 from Entities.Applications import Application
@@ -19,6 +19,7 @@ def authorize():
     OAuth authorize endpoint.
     :return: 200 OK, 503 Service Unavailable, 302 Redirect.
     """
+    from main import FIREBASE_CONFIG
     client_id = request.args.get("client_id")
     response_type = request.args.get("response_type")
     redirect_uri = request.args.get("redirect_uri")
@@ -53,10 +54,10 @@ def authorize():
         if 'authorization_code' not in app.grant_types:
             return render_template('errors/error.html', status_code=503, error_msg='Invalid grant type.'), 503
 
-    return render_template('login/index.html', data=request.args, app_name=app.name)
+    return render_template('login/index.html', firebase_cfg=FIREBASE_CONFIG, data=request.args, app_name=app.name)
 
 
-@app_OAuth.route('/signin-password', methods=['POST'])
+@app_OAuth.route('/signin-user-check', methods=['POST'])
 def signin_password():
     """
     This api is to validate the username and password.
@@ -72,15 +73,13 @@ def signin_password():
     audience = request.form.get("audience")
 
     authorization = str(request.headers.get("Authorization").encode('ascii', 'ignore').decode('utf-8'))
-    if authorization.split(" ")[0] != "Basic":
+    if authorization.split(" ")[0] != "Bearer":
         return jsonify({'success': False, 'msg': 'unauthorized'}), 401
 
-    decoded = b64decode(authorization.split(" ")[1])
-    if ":" not in decoded:
-        return jsonify({'success': False, 'msg': 'invalid username or password'}), 401
+    idToken = decode_jwt(authorization.split(" ")[1])
 
-    email = str(decoded).split(":")[0]
-    password = str(decoded).split(":")[1]
+    email = idToken['email']
+    signin_method = idToken['firebase']['sign_in_provider']
 
     app = Application()
     result = app.get_by_key(api_id=audience, key=client_id)
@@ -90,14 +89,14 @@ def signin_password():
     user = User(email=email)
     result = user.get_by_email(application=app)
 
-    code = generate_key(10)
-    memcache_connection().add(key=code, val=str(user))
-
     if not result:
         return jsonify({'success': False, 'msg': 'username not found'}), 401
 
-    if not validate_password(password=password, hash=user.password):
-        return jsonify({'success': False, 'msg': 'invalid password'}), 401
+    userdata = user.json()
+    userdata['signin_method'] = signin_method
+
+    code = generate_key(10)
+    memcache_connection().add(key=code, val=json.dumps(userdata))
 
     return jsonify({'success': True, 'msg': 'logged in', 'session': code})
 
@@ -151,6 +150,7 @@ def redirect_to_uri():
         data['email'] = userinfo['email']
         data['role'] = userinfo['role']
         data['id_'] = userinfo['id_']
+        data['signin_method'] = userinfo['signin_method']
         memcache_client.add(key=code, val=json.dumps(data), time=86400)
 
         uri = redirect_uri + "?code=" + code
@@ -166,7 +166,8 @@ def redirect_to_uri():
             'sub': userinfo['id_'],
             'aud': app.api,
             'gty': 'implicit',
-            'app': app.name
+            'app': app.name,
+            'signin_method': userinfo['signin_method']
         }
 
         user = User(email=userinfo['email'])
@@ -266,7 +267,8 @@ def oauth_token():
             'sub': data['id_'],
             'aud': app.api,
             'gty': 'authorization_code',
-            'app': app.name
+            'app': app.name,
+            'signin_method': data['signin_method']
         }
         if 'scope' in data:
             scopes = data['scope']

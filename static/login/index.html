@@ -6,20 +6,161 @@
 </head>
 
 <body>
+    <script src="https://www.gstatic.com/firebasejs/7.17.2/firebase-app.js"></script>
+
+    <script src="https://www.gstatic.com/firebasejs/7.17.2/firebase-auth.js"></script>
+
     <link rel="stylesheet" href="static/login/css/main.css" type="text/css">
     <script type="text/javascript">
         data = {{ data|tojson }};
+        firebase_cfg = {{ firebase_cfg|tojson }};
     </script>
-    <script src="static/login/js/main.js"></script>
-    <div>
+    <div id="login-form">
         <h2 id="hello-message">{{ app_name }}</h2>
+        <h2 id="continueAsMessage"></h2>
         <form class="loginbox" autocomplete="off">
             <input placeholder="Username" type="text" id="username"></input>
             <input placeholder="Password" type="password" id="password" autocomplete="on"></input>
+            <button id="continueLogin">Continue?</button>
             <button id="submit">Login</button>
+            <button id="signout">Sign Out</button>
+            <div id="signInMethods">
+                <button id="signInWithGoogle">Sign In With Google</button>
+                <button id="signInWithFacebook">Sign In With Facebook</button>
+            </div>
         </form>
         <p class="error" id="error"></p>
     </div>
+    <script>
+        // Your web app's Firebase configuration
+        var firebaseConfig = firebase_cfg;
+
+        var googleProvider = new firebase.auth.GoogleAuthProvider();
+        var facebookProvider = new firebase.auth.FacebookAuthProvider();
+
+        var ID_TOKEN = null;
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+
+        firebase.auth().onAuthStateChanged(function (user) {
+            if (user) {
+                // User is signed in.
+                var displayName = user.displayName;
+                var email = user.email;
+                var emailVerified = user.emailVerified;
+                var photoURL = user.photoURL;
+                var isAnonymous = user.isAnonymous;
+                var uid = user.uid;
+                var providerData = user.providerData;
+                ID_TOKEN = user.xa;
+                document.getElementById("continueAsMessage").innerText = "Continue as " + email + "?";
+                document.getElementById("continueLogin").style.display = 'block';
+                document.getElementById("signout").style.display = 'block';
+                document.getElementById("submit").style.display = 'none';
+                document.getElementById("username").style.display = 'none';
+                document.getElementById("password").style.display = 'none';
+                document.getElementById("signInMethods").style.display = 'none';
+            } else {
+                // User is signed out.
+                ID_TOKEN = null;
+                document.getElementById("continueAsMessage").innerText = "";
+                document.getElementById("continueLogin").style.display = 'none';
+                document.getElementById("signout").style.display = 'none';
+                document.getElementById("submit").style.display = 'block';
+                document.getElementById("username").style.display = 'block';
+                document.getElementById("password").style.display = 'block';
+                document.getElementById("signInMethods").style.display = 'block';
+            }
+        });
+
+        $('#submit').click(function () {
+            event.preventDefault(); // prevent PageReLoad
+
+            username = $("#username").val();
+            password = $("#password").val();
+
+            firebase.auth().signInWithEmailAndPassword(username, password).catch(function (error) {
+                // Handle Errors here.
+                var errorCode = error.code;
+                var errorMessage = error.message;
+                alert(errorMessage);
+            });
+        });
+
+        $('#signInWithGoogle').click(function () {
+            event.preventDefault(); // prevent PageReLoad
+
+            firebase.auth().signInWithPopup(googleProvider).then(function (result) {
+                // This gives you a Google Access Token. You can use it to access the Google API.
+                var token = result.credential.accessToken;
+                var user = result.user;
+            }).catch(function (error) {
+                // Handle Errors here.
+                var errorCode = error.code;
+                var errorMessage = error.message;
+                var email = error.email;
+                var credential = error.credential;
+                alert(errorMessage);
+            });
+        });
+
+        $('#signInWithFacebook').click(function () {
+            event.preventDefault(); // prevent PageReLoad
+
+            firebase.auth().signInWithPopup(facebookProvider).then(function (result) {
+                // This gives you a Google Access Token. You can use it to access the Google API.
+                var token = result.credential.accessToken;
+                var user = result.user;
+            }).catch(function (error) {
+                // Handle Errors here.
+                var errorCode = error.code;
+                var errorMessage = error.message;
+                var email = error.email;
+                var credential = error.credential;
+                alert(errorMessage);
+            });
+        });
+
+        $('#signout').click(function () {
+            event.preventDefault(); // prevent PageReLoad
+
+            document.getElementById('error').style.display = 'none';
+
+            firebase.auth().signOut().then(function () {
+                // Sign-out successful.
+            }).catch(function (error) {
+                // An error happened.
+            });
+        });
+
+        $('#continueLogin').click(function () {
+            event.preventDefault(); // prevent PageReLoad
+
+            $.ajax({
+                url: "/signin-user-check",
+                async: true,
+                type: "POST",
+                data: data,
+                contentType: "application/x-www-form-urlencoded",
+                beforeSend: function(xhr){
+                    xhr.setRequestHeader('Authorization', 'Bearer ' + ID_TOKEN);
+                },
+                success: function(response){
+                    url = window.location.origin + "/redirect?";
+                    for(var key in data){
+                        url = url + key + "=" + data[key] + "&";
+                    }
+                    url = url + "session=" + response['session'];
+                    window.location.replace(url);
+                },
+                error: function(response){
+                    document.getElementById('error').innerText = response.responseJSON['msg'];
+                    document.getElementById('error').style.display = 'block';
+                }
+            });
+        });
+    </script>
 </body>
 
 </html>

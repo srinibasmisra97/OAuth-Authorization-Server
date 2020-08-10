@@ -22,8 +22,19 @@ if CONFIG_METHOD == "CFG":
     MONGO_USERNAME = str(cfg.get(CONFIG_ENV, "MONGO_USERNAME")) if cfg.has_option(CONFIG_ENV, "MONGO_USERNAME") else ""
     MONGO_PASSWORD = str(cfg.get(CONFIG_ENV, "MONGO_PASSWORD")) if cfg.has_option(CONFIG_ENV, "MONGO_PASSWORD") else ""
     MONGO_DB = str(cfg.get(CONFIG_ENV, "MONGO_DB")) if cfg.has_option(CONFIG_ENV, "MONGO_DB") else "authDb"
-    MEMCACHE_HOST = str(cfg.get(CONFIG_ENV, "MEMCACHE_HOST")) if cfg.has_option(CONFIG_ENV, "MEMCACHE_HOST") else "localhost"
+    MEMCACHE_HOST = str(cfg.get(CONFIG_ENV, "MEMCACHE_HOST")) if cfg.has_option(CONFIG_ENV,
+                                                                                "MEMCACHE_HOST") else "localhost"
     MEMCACHE_PORT = int(cfg.get(CONFIG_ENV, "MEMCACHE_PORT")) if cfg.has_option(CONFIG_ENV, "MEMCACHE_PORT") else 11211
+    FIREBASE_CONFIG = {
+        'apiKey': str(cfg.get(CONFIG_ENV, "FIREBASE_API_KEY")),
+        'authDomain': str(cfg.get(CONFIG_ENV, "FIREBASE_AUTH_DOMAIN")),
+        'databaseURL': str(cfg.get(CONFIG_ENV, "FIREBASE_DATABASE_URL")),
+        'projectId': str(cfg.get(CONFIG_ENV, "FIREBASE_PROJECT_ID")),
+        'storageBucket': str(cfg.get(CONFIG_ENV, "FIREBASE_STORAGE_BUCKET")),
+        'messagingSenderId': str(cfg.get(CONFIG_ENV, "FIREBASE_MESSAGING_SENDER_ID")),
+        'appId': str(cfg.get(CONFIG_ENV, "FIREBASE_APP_ID")),
+        'measurementId': str(cfg.get(CONFIG_ENV, "FIREBASE_MEASUREMENT_ID"))
+    }
 elif CONFIG_METHOD == "ENV":
     MONGO_HOST = str(os.environ.get("MONGO_HOST")) if os.environ.get("MONGO_HOST") is not None else "localhost"
     MONGO_PORT = int(os.environ.get("MONGO_PORT")) if os.environ.get("MONGO_PORT") is not None else 27017
@@ -32,6 +43,16 @@ elif CONFIG_METHOD == "ENV":
     MONGO_DB = str(os.environ.get("MONGO_DB")) if os.environ.get("MONGO_DB") is not None else "authDb"
     MEMCACHE_HOST = str(os.environ.get("MEMCACHE_HOST")) if os.environ.get("MEMCACHE_HOST") is not None else "localhost"
     MEMCACHE_PORT = int(os.environ.get("MEMCACHE_PORT")) if os.environ.get("MEMCACHE_PORT") is not None else 11211
+    FIREBASE_CONFIG = {
+        'apiKey': str(os.environ.get("FIREBASE_API_KEY")),
+        'authDomain': str(os.environ.get("FIREBASE_AUTH_DOMAIN")),
+        'databaseURL': str(os.environ.get("FIREBASE_DATABASE_URL")),
+        'projectId': str(os.environ.get("FIREBASE_PROJECT_ID")),
+        'storageBucket': str(os.environ.get("FIREBASE_STORAGE_BUCKET")),
+        'messagingSenderId': str(os.environ.get("FIREBASE_MESSAGING_SENDER_ID")),
+        'appId': str(os.environ.get("FIREBASE_APP_ID")),
+        'measurementId': str(os.environ.get("FIREBASE_MEASUREMENT_ID"))
+    }
 else:
     print("Invalid config method.")
     exit(1)
@@ -44,7 +65,6 @@ app.register_blueprint(app_Clients)
 app.register_blueprint(app_RBAC)
 app.register_blueprint(app_Applications)
 app.register_blueprint(app_OAuth)
-
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', debug=True)
