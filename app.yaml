@@ -1,0 +1,21 @@
+runtime: python38
+
+env_variables:
+  CONFIG_METHOD: ENV
+  MONGO_HOST:
+  MONGO_PORT:
+  MONGO_USERNAME:
+  MONGO_PASSWORD:
+  MONGO_DB:
+  MEMCACHE_HOST:
+  MEMCACHE_PORT:
+  FIREBASE_API_KEY:
+  FIREBASE_AUTH_DOMAIN:
+  FIREBASE_DATABASE_URL:
+  FIREBASE_PROJECT_ID:
+  FIREBASE_STORAGE_BUCKET:
+  FIREBASE_MESSAGING_SENDER_ID:
+  FIREBASE_APP_ID:
+
+vpc_access_connector:
+  name: 'projects/srinibass-cloud/locations/us-central1/connectors/auth-server-connector'
