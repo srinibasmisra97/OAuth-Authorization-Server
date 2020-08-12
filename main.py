@@ -32,8 +32,7 @@ if CONFIG_METHOD == "CFG":
         'projectId': str(cfg.get(CONFIG_ENV, "FIREBASE_PROJECT_ID")),
         'storageBucket': str(cfg.get(CONFIG_ENV, "FIREBASE_STORAGE_BUCKET")),
         'messagingSenderId': str(cfg.get(CONFIG_ENV, "FIREBASE_MESSAGING_SENDER_ID")),
-        'appId': str(cfg.get(CONFIG_ENV, "FIREBASE_APP_ID")),
-        'measurementId': str(cfg.get(CONFIG_ENV, "FIREBASE_MEASUREMENT_ID"))
+        'appId': str(cfg.get(CONFIG_ENV, "FIREBASE_APP_ID"))
     }
 elif CONFIG_METHOD == "ENV":
     MONGO_HOST = str(os.environ.get("MONGO_HOST")) if os.environ.get("MONGO_HOST") is not None else "localhost"
@@ -50,8 +49,7 @@ elif CONFIG_METHOD == "ENV":
         'projectId': str(os.environ.get("FIREBASE_PROJECT_ID")),
         'storageBucket': str(os.environ.get("FIREBASE_STORAGE_BUCKET")),
         'messagingSenderId': str(os.environ.get("FIREBASE_MESSAGING_SENDER_ID")),
-        'appId': str(os.environ.get("FIREBASE_APP_ID")),
-        'measurementId': str(os.environ.get("FIREBASE_MEASUREMENT_ID"))
+        'appId': str(os.environ.get("FIREBASE_APP_ID"))
     }
 else:
     print("Invalid config method.")
