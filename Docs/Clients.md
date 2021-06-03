@@ -57,7 +57,7 @@ curl --location --request POST 'http://localhost:5000/signup' \
 ##### 401 Unauthorized
 401 is returned if the Authorization header is not provided.
 
-### Signin (POST /signup)
+### Signin (POST /signin)
 
 This API is used to get an access token for clients/user.
 
